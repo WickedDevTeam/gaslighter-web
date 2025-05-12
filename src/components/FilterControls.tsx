@@ -136,35 +136,34 @@ const FilterControls: React.FC<FilterControlsProps> = ({
         </div>
       </div>
       
-      {/* Second row - View controls and Gaslight button */}
-      <div className="flex items-end justify-between">
-        {/* View Controls */}
-        <div>
-          <label className="form-label text-xs block mb-1">View As:</label>
-          <ToggleGroup 
-            type="single" 
-            value={viewMode}
-            onValueChange={(value) => value && onViewModeChange(value as ViewMode)}
-            className="flex gap-1"
-          >
-            <ToggleGroupItem value="compact" aria-label="Compact View" className="h-9 px-2 text-xs">
-              <LayoutGrid className="h-3 w-3 mr-1" />
-              <span>Compact</span>
-            </ToggleGroupItem>
+      {/* Second row - View controls */}
+      <div className="mb-3">
+        <label className="form-label text-xs block mb-1">View As:</label>
+        <ToggleGroup 
+          type="single" 
+          value={viewMode}
+          onValueChange={(value) => value && onViewModeChange(value as ViewMode)}
+          className="flex gap-1"
+        >
+          <ToggleGroupItem value="compact" aria-label="Compact View" className="h-9 px-2 text-xs">
+            <LayoutGrid className="h-3 w-3 mr-1" />
+            <span>Compact</span>
+          </ToggleGroupItem>
 
-            <ToggleGroupItem value="large" aria-label="Large View" className="h-9 px-2 text-xs">
-              <Columns3 className="h-3 w-3 mr-1" />
-              <span>Large</span>
-            </ToggleGroupItem>
+          <ToggleGroupItem value="large" aria-label="Large View" className="h-9 px-2 text-xs">
+            <Columns3 className="h-3 w-3 mr-1" />
+            <span>Large</span>
+          </ToggleGroupItem>
 
-            <ToggleGroupItem value="extra-large" aria-label="Extra Large View" className="h-9 px-2 text-xs">
-              <LayoutList className="h-3 w-3 mr-1" />
-              <span>XL</span>
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
-        
-        {/* Gaslight Button */}
+          <ToggleGroupItem value="extra-large" aria-label="Extra Large View" className="h-9 px-2 text-xs">
+            <LayoutList className="h-3 w-3 mr-1" />
+            <span>XL</span>
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+      
+      {/* Third row - Gaslight button */}
+      <div className="flex justify-end">
         <Button 
           className="h-9 bg-gradient-to-r from-purple to-purple-500/90 hover:from-purple-500/90 hover:to-purple shadow-md transition-all hover:shadow-lg hover:scale-105 text-white" 
           onClick={handleSubmit} 

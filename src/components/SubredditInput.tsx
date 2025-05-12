@@ -12,6 +12,7 @@ interface SubredditInputProps {
   placeholder: string;
   onChange: (value: string) => void;
   isSourceField?: boolean;
+  className?: string; // Added className prop
 }
 
 const SubredditInput: React.FC<SubredditInputProps> = ({
@@ -21,6 +22,7 @@ const SubredditInput: React.FC<SubredditInputProps> = ({
   placeholder,
   onChange,
   isSourceField = false,
+  className, // Added className to component props
 }) => {
   const [suggestions, setSuggestions] = useState<Array<{ name: string }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -117,7 +119,7 @@ const SubredditInput: React.FC<SubredditInputProps> = ({
   }, [value, searchTerm]);
 
   return (
-    <div className="flex flex-col space-y-1.5 w-full">
+    <div className={cn("flex flex-col space-y-1.5 w-full", className)}>
       <label htmlFor={id} className="text-sm font-medium text-white/80">
         {label}
       </label>
