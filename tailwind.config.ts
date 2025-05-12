@@ -65,9 +65,7 @@ export default {
 				},
 				purple: {
 					DEFAULT: 'hsl(var(--purple))',
-					foreground: 'hsl(var(--purple-foreground))',
-                    '600': 'hsl(var(--purple-600))',
-                    '700': 'hsl(var(--purple-700))'
+					foreground: 'hsl(var(--purple-foreground))'
 				}
 			},
 			borderRadius: {
