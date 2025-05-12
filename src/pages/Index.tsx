@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import SubredditInput from '@/components/SubredditInput';
 import MessageArea from '@/components/MessageArea';
@@ -47,7 +48,7 @@ const Index = () => {
 
   // Message state
   const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<'error' | 'info'>('info');
+  const [messageType, setMessageType] = useState<'error' | 'info'>('error');
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -59,21 +60,26 @@ const Index = () => {
     setMessageType(type);
     console.log(`[Message displayed] ${type}: ${text}`);
   }, []);
+  
   const clearMessage = useCallback(() => {
     setMessage('');
   }, []);
+  
   const openModal = useCallback((index: number) => {
     if (index >= 0 && index < displayedPosts.length) {
       setCurrentModalIndex(index);
       setModalOpen(true);
     }
   }, [displayedPosts]);
+  
   const closeModal = useCallback(() => {
     setModalOpen(false);
   }, []);
+  
   const navigateModal = useCallback((newIndex: number) => {
     setCurrentModalIndex(newIndex);
   }, []);
+  
   const refetchSourceMedia = useCallback(async () => {
     if (isRefetchingSources || isLoadingInitialSources || currentSourceSubredditsNames.length === 0) return;
     setIsRefetchingSources(true);
@@ -97,14 +103,16 @@ const Index = () => {
       setIsRefetchingSources(false);
     }
   }, [currentSourceSubredditsNames, isRefetchingSources, isLoadingInitialSources]);
+  
   const appendPostsToFeed = useCallback((targetPosts: any[]) => {
     console.log(`[Appending posts] Target posts: ${targetPosts.length}, Source media: ${allSourceMediaUrls.length}`);
     let postsAddedCount = 0;
     const newPosts: PostData[] = [];
     
-    // Check if we have any source media URLs
+    // Don't try to append posts if we don't have source media
     if (allSourceMediaUrls.length === 0) {
-      console.log('[Warning] No source media available for replacement');
+      console.log('[Warning] No source media available for replacement - skipping post addition');
+      return 0;
     }
     
     targetPosts.forEach(post => {
@@ -112,28 +120,26 @@ const Index = () => {
       const isTrulyMediaPost = pData.post_hint === 'image' || pData.post_hint === 'hosted:video' || pData.post_hint === 'rich:video' || pData.is_video || pData.is_gallery || pData.preview && pData.preview.images && pData.preview.images.length > 0 && pData.domain !== 'self.' + pData.subreddit.toLowerCase() && !pData.url.includes('/comments/');
       
       if (isTrulyMediaPost) {
-        if (allSourceMediaUrls.length < 10 && currentSourceSubredditsNames.length > 0 && !isRefetchingSources && !isLoadingInitialSources) {
-          refetchSourceMedia();
-        }
-        
         // Only try to pick a random media if we have source media available
         const randomMedia = allSourceMediaUrls.length > 0 
           ? allSourceMediaUrls[Math.floor(Math.random() * allSourceMediaUrls.length)] 
           : null;
         
-        const postData: PostData = {
-          targetPostData: {
-            title: pData.title,
-            author: pData.author,
-            subreddit: pData.subreddit,
-            permalink: pData.permalink,
-            score: pData.score
-          },
-          replacementMedia: randomMedia
-        };
-        
-        newPosts.push(postData);
-        postsAddedCount++;
+        if (randomMedia) {
+          const postData: PostData = {
+            targetPostData: {
+              title: pData.title,
+              author: pData.author,
+              subreddit: pData.subreddit,
+              permalink: pData.permalink,
+              score: pData.score
+            },
+            replacementMedia: randomMedia
+          };
+          
+          newPosts.push(postData);
+          postsAddedCount++;
+        }
       }
     });
     
@@ -143,7 +149,9 @@ const Index = () => {
     
     setDisplayedPosts(prev => [...prev, ...newPosts]);
     return postsAddedCount;
-  }, [allSourceMediaUrls, currentSourceSubredditsNames, isLoadingInitialSources, isRefetchingSources, refetchSourceMedia]);
+  }, [allSourceMediaUrls]);
+  
+  // Key fix: Ensure source media is loaded before rendering posts
   const fetchInitialData = useCallback(async () => {
     console.log('[fetchInitialData] Starting data fetch');
     clearMessage();
@@ -176,7 +184,7 @@ const Index = () => {
     setIsLoadingInitialSources(true);
     
     try {
-      // First fetch source media
+      // First fetch source media - KEY FIX: wait for this to complete before proceeding
       console.log(`[fetchInitialData] Fetching media from ${sourceSubs.length} source subreddits`);
       const srcPromises = sourceSubs.map(name => fetchRedditData(name, 'hot', null, 75)
         .then(d => {
@@ -185,7 +193,6 @@ const Index = () => {
         })
         .catch(err => {
           console.error(`[fetchInitialData] Error fetching r/${name}:`, err);
-          displayMessage(`Warning: Source r/${name} issue.`, 'info');
           return [];
         }));
       
@@ -196,33 +203,39 @@ const Index = () => {
       // Remove duplicates
       const uniqueMedia = Array.from(new Map(allMedia.map(item => [item.url, item])).values());
       console.log(`[fetchInitialData] Source media collected: ${uniqueMedia.length} unique items`);
-      setAllSourceMediaUrls(uniqueMedia);
       
+      // KEY FIX: Check if we have source media before proceeding
       if (uniqueMedia.length === 0) {
-        displayMessage("No media in sources. Posts will lack replacements.", 'info');
+        displayMessage("No media found in source subreddits. Try different sources.", 'error');
+        setIsLoadingPosts(false);
+        setIsLoadingInitialSources(false);
+        return;
       }
+      
+      setAllSourceMediaUrls(uniqueMedia);
 
       // Now fetch target posts
       console.log(`[fetchInitialData] Fetching target posts from r/${targetSub}`);
       const targetData = await fetchRedditData(targetSub, sortMode, topTimeFilter, 25, null);
       
       if (!targetData.posts || targetData.posts.length === 0) {
-        displayMessage(`No posts in r/${targetSub} for selected filters.`, 'error');
+        displayMessage(`No posts found in r/${targetSub} for selected filters.`, 'error');
       } else {
         console.log(`[fetchInitialData] Received ${targetData.posts.length} target posts`);
+        
+        // KEY FIX: Only try to append posts if we have source media
         const postsAdded = appendPostsToFeed(targetData.posts);
         setTargetAfter(targetData.after);
         
-        if (postsAdded > 0 && uniqueMedia.length > 0) {
-          displayMessage(`Gaslit initial posts! Scroll for more.`, 'info');
-        } else if (postsAdded === 0 && targetData.posts.length > 0) {
-          displayMessage(`Found posts in r/${targetSub}, but none had replaceable media.`, 'info');
+        if (postsAdded === 0) {
+          if (targetData.posts.length > 0) {
+            displayMessage(`Found posts in r/${targetSub}, but none had replaceable media.`, 'error');
+          } else {
+            displayMessage(`No media posts found in r/${targetSub}.`, 'error');
+          }
         }
         
-        if (!targetData.after && postsAdded > 0) {
-          setNoMoreTargetPosts(true);
-          displayMessage(`Loaded all available media posts from r/${targetSub}.`, 'info');
-        } else if (!targetData.after && postsAdded === 0) {
+        if (!targetData.after) {
           setNoMoreTargetPosts(true);
         }
       }
@@ -235,6 +248,7 @@ const Index = () => {
       console.log('[fetchInitialData] Fetch operation completed');
     }
   }, [targetSubreddit, sourceSubreddits, sortMode, topTimeFilter, appendPostsToFeed, clearMessage, displayMessage]);
+  
   const loadMoreTargetPosts = useCallback(async () => {
     if (isLoadingMore || noMoreTargetPosts || !currentTargetSubredditName || !targetAfter) return;
     setIsLoadingMore(true);
@@ -243,24 +257,18 @@ const Index = () => {
       if (data.posts?.length > 0) {
         const postsAdded = appendPostsToFeed(data.posts);
         setTargetAfter(data.after);
-        if (!data.after && postsAdded > 0) {
+        if (!data.after) {
           setNoMoreTargetPosts(true);
-          displayMessage(`End of r/${currentTargetSubredditName}!`, 'info');
-        } else if (!data.after && postsAdded === 0) {
-          setNoMoreTargetPosts(true);
-        } else if (postsAdded > 0) {
-          clearMessage();
         }
       } else {
         setNoMoreTargetPosts(true);
-        displayMessage(`No more posts in r/${currentTargetSubredditName}.`, 'info');
       }
     } catch (error: any) {
       displayMessage(`Error loading more: ${error.message}`, 'error');
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, noMoreTargetPosts, currentTargetSubredditName, targetAfter, sortMode, topTimeFilter, appendPostsToFeed, displayMessage, clearMessage]);
+  }, [isLoadingMore, noMoreTargetPosts, currentTargetSubredditName, targetAfter, sortMode, topTimeFilter, appendPostsToFeed, displayMessage]);
 
   // Set up scroll listener for infinite loading
   useEffect(() => {
@@ -281,11 +289,11 @@ const Index = () => {
       case 'compact':
         return 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3';
       case 'large':
-        return 'sm:grid-cols-1 lg:grid-cols-2 gap-4'; // Changed from 3 columns to 2
+        return 'sm:grid-cols-1 lg:grid-cols-2 gap-4';
       case 'extra-large':
         return 'grid-cols-1 max-w-3xl mx-auto gap-6';
       default:
-        return 'sm:grid-cols-1 lg:grid-cols-2 gap-4'; // Changed default to match large
+        return 'sm:grid-cols-1 lg:grid-cols-2 gap-4';
     }
   };
 
