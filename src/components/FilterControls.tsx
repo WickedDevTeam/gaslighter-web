@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { SortMode, TopTimeFilter, ViewMode } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/useSettings';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Columns1, Columns3, Columns4 } from 'lucide-react';
 
 interface FilterControlsProps {
   targetSubreddit: string;
@@ -85,19 +88,48 @@ const FilterControls: React.FC<FilterControlsProps> = ({
           />
           <div>
             <label className="form-label">View As:</label>
-            <div className="flex space-x-2 mt-1">
-              <button 
-                className={`secondary-button flex-1 ${viewMode === 'list' ? 'active' : ''}`} 
-                onClick={() => onViewModeChange('list')}
-              >
-                List
-              </button>
-              <button 
-                className={`secondary-button flex-1 ${viewMode === 'gallery' ? 'active' : ''}`} 
-                onClick={() => onViewModeChange('gallery')}
-              >
-                Gallery
-              </button>
+            <div className="mt-1">
+              <TooltipProvider>
+                <ToggleGroup 
+                  type="single" 
+                  value={viewMode}
+                  onValueChange={(value) => value && onViewModeChange(value as ViewMode)}
+                  className="justify-start"
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <ToggleGroupItem value="compact" aria-label="Compact View">
+                        <Columns4 className="h-4 w-4" />
+                      </ToggleGroupItem>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Compact (4 columns)</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <ToggleGroupItem value="large" aria-label="Large View">
+                        <Columns3 className="h-4 w-4" />
+                      </ToggleGroupItem>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Large (3 columns)</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <ToggleGroupItem value="extra-large" aria-label="Extra Large View">
+                        <Columns1 className="h-4 w-4" />
+                      </ToggleGroupItem>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Extra Large (1 column)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </ToggleGroup>
+              </TooltipProvider>
             </div>
           </div>
         </div>

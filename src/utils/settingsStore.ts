@@ -14,7 +14,7 @@ const SETTINGS_KEY = 'gaslighter_user_settings';
 export const defaultSettings: UserSettings = {
   targetSubreddit: '',
   sourceSubreddits: 'pics',
-  viewMode: 'list',
+  viewMode: 'large',
   sortMode: 'hot',
   topTimeFilter: 'day',
 };

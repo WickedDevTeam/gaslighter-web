@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import SubredditInput from '@/components/SubredditInput';
 import MessageArea from '@/components/MessageArea';
@@ -8,6 +9,7 @@ import FilterControls from '@/components/FilterControls';
 import { fetchRedditData, extractMediaUrls } from '@/utils/redditApi';
 import { PostData, ViewMode, SortMode, TopTimeFilter, MediaInfo } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
+import { cn } from '@/lib/utils';
 
 const Index = () => {
   const { settings, isLoaded } = useSettings();
@@ -15,7 +17,7 @@ const Index = () => {
   // Main inputs state - initialize from settings when loaded
   const [targetSubreddit, setTargetSubreddit] = useState('');
   const [sourceSubreddits, setSourceSubreddits] = useState('pics');
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('large');
   const [sortMode, setSortMode] = useState<SortMode>('hot');
   const [topTimeFilter, setTopTimeFilter] = useState<TopTimeFilter>('day');
 
@@ -228,6 +230,20 @@ const Index = () => {
     };
   }, [loadMoreTargetPosts]);
 
+  // Get the appropriate grid class for the current view mode
+  const getGridClasses = () => {
+    switch(viewMode) {
+      case 'compact':
+        return 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3';
+      case 'large':
+        return 'sm:grid-cols-2 lg:grid-cols-3 gap-4';
+      case 'extra-large':
+        return 'grid-cols-1 max-w-3xl mx-auto gap-6';
+      default:
+        return 'sm:grid-cols-2 lg:grid-cols-3 gap-4';
+    }
+  };
+
   return (
     <div className="app-bg app-text">
       <div className="main-container container mx-auto min-h-screen flex flex-col">
@@ -264,7 +280,7 @@ const Index = () => {
             </div>
           )}
           
-          <div className={`grid grid-cols-1 ${viewMode === 'list' ? 'feed-list-gap max-w-xl mx-auto' : 'sm:grid-cols-2 feed-gallery-gap'}`}>
+          <div className={cn('grid grid-cols-1', getGridClasses())}>
             {displayedPosts.map((post, index) => (
               <PostCard 
                 key={`post-${index}`} 

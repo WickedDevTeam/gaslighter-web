@@ -1,13 +1,16 @@
+
 import React from 'react';
 import { PostData, ViewMode } from '@/types';
 import MediaErrorPlaceholder from './MediaErrorPlaceholder';
 import { cn } from '@/lib/utils';
+
 interface PostCardProps {
   postData: PostData;
   viewMode: ViewMode;
   index: number;
   onPostClick: (index: number) => void;
 }
+
 const PostCard: React.FC<PostCardProps> = ({
   postData,
   viewMode,
@@ -18,7 +21,9 @@ const PostCard: React.FC<PostCardProps> = ({
     targetPostData,
     replacementMedia
   } = postData;
+  
   const title = targetPostData.title ? String(targetPostData.title).replace(/</g, "&lt;").replace(/>/g, "&gt;") : "Untitled";
+  
   const handlePostClick = (e: React.MouseEvent) => {
     // Don't trigger modal when clicking external links
     if ((e.target as HTMLElement).closest('a[target="_blank"]')) return;
@@ -38,6 +43,7 @@ const PostCard: React.FC<PostCardProps> = ({
       onPostClick(index);
     }
   };
+  
   const renderMedia = () => {
     if (!replacementMedia || !replacementMedia.url) {
       return <div className="w-full h-full bg-[#111111] flex flex-col items-center justify-center text-gray-400 p-3">
@@ -47,6 +53,7 @@ const PostCard: React.FC<PostCardProps> = ({
           <span className="text-sm opacity-80">No media available</span>
         </div>;
     }
+    
     if (replacementMedia.type === 'image') {
       return <>
           <img src={replacementMedia.url} alt="Gaslit Media" loading="lazy" onError={e => {
@@ -68,10 +75,13 @@ const PostCard: React.FC<PostCardProps> = ({
           <MediaErrorPlaceholder subreddit={replacementMedia.originalPost?.subreddit} />
         </>;
     }
+    
     return null;
   };
-  if (viewMode === 'list') {
-    return <div className="card-content flex flex-col h-full" onClick={handlePostClick}>
+
+  if (viewMode === 'extra-large') {
+    return (
+      <div className="card-content flex flex-col h-full" onClick={handlePostClick}>
         <div className="list-view-media-container relative">
           {renderMedia()}
           <div className="absolute inset-0 flex items-center justify-center">
@@ -80,23 +90,35 @@ const PostCard: React.FC<PostCardProps> = ({
         </div>
         <div className="p-4 flex flex-col flex-grow bg-gradient-to-b from-[#1A1A1A] to-[#222222]">
           <h3 className="text-white text-xl font-bold leading-tight mb-2 line-clamp-2" title={title} dangerouslySetInnerHTML={{
-          __html: title
-        }} />
-          
-          
+            __html: title
+          }} />
         </div>
-      </div>;
+      </div>
+    );
   } else {
-    return <div className="gallery-item" onClick={handlePostClick}>
+    // For compact and large views
+    return (
+      <div className={cn(
+        "gallery-item", 
+        viewMode === "compact" ? "compact-gallery-item" : ""
+      )} 
+      onClick={handlePostClick}>
         <div className="media-container relative">
           {renderMedia()}
           <div className="absolute inset-x-0 bottom-0 bg-black/70 backdrop-blur-sm p-3">
-            <h3 className="text-white text-lg font-bold leading-tight line-clamp-2 text-center" title={title} dangerouslySetInnerHTML={{
-            __html: title
-          }} />
+            <h3 className={cn(
+              "text-white font-bold leading-tight line-clamp-2 text-center",
+              viewMode === "compact" ? "text-sm" : "text-lg"
+            )} 
+            title={title} 
+            dangerouslySetInnerHTML={{
+              __html: title
+            }} />
           </div>
         </div>
-      </div>;
+      </div>
+    );
   }
 };
+
 export default PostCard;

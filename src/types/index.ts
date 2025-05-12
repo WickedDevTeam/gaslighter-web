@@ -56,6 +56,6 @@ export interface PostData {
   replacementMedia: MediaInfo | null;
 }
 
-export type ViewMode = "list" | "gallery";
+export type ViewMode = "compact" | "large" | "extra-large";
 export type SortMode = "hot" | "new" | "top";
 export type TopTimeFilter = "day" | "week" | "month" | "year" | "all";
