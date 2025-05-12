@@ -12,6 +12,7 @@ interface SubredditInputProps {
   placeholder: string;
   onChange: (value: string) => void;
   isSourceField?: boolean;
+  className?: string;
 }
 
 const SubredditInput: React.FC<SubredditInputProps> = ({
@@ -21,6 +22,7 @@ const SubredditInput: React.FC<SubredditInputProps> = ({
   placeholder,
   onChange,
   isSourceField = false,
+  className,
 }) => {
   const [suggestions, setSuggestions] = useState<Array<{ name: string }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -117,8 +119,8 @@ const SubredditInput: React.FC<SubredditInputProps> = ({
   }, [value, searchTerm]);
 
   return (
-    <div className="flex flex-col space-y-1.5 w-full">
-      <label htmlFor={id} className="text-sm font-medium text-white/80">
+    <div className={cn("flex flex-col space-y-1.5 w-full", className)}>
+      <label htmlFor={id} className="text-xs font-medium text-gray-400">
         {label}
       </label>
       <div className="relative w-full">
@@ -128,6 +130,8 @@ const SubredditInput: React.FC<SubredditInputProps> = ({
           ref={inputRef}
           className={cn(
             "w-full bg-[#2A2A2E] border-[#444] text-white placeholder:text-gray-500",
+            "transition-all duration-200 focus:ring-1 focus:ring-purple/50 focus:border-purple",
+            "hover:border-[#555]",
             showSuggestions && "rounded-b-none border-b-0"
           )}
           placeholder={placeholder}
@@ -150,7 +154,7 @@ const SubredditInput: React.FC<SubredditInputProps> = ({
         {showSuggestions && (
           <div 
             ref={suggestionsRef}
-            className="absolute z-50 w-full bg-[#2A2A2E] border border-[#444] rounded-b-md shadow-lg max-h-[200px] overflow-y-auto"
+            className="absolute z-50 w-full bg-[#2A2A2E] border border-[#444] border-t-0 rounded-b-md shadow-lg max-h-[200px] overflow-y-auto"
           >
             {suggestions.length > 0 ? (
               suggestions.map((sub, index) => (
