@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import SubredditInput from '@/components/SubredditInput';
 import MessageArea from '@/components/MessageArea';
@@ -175,7 +176,7 @@ const Index = () => {
     }
   }, [isSourceMediaReady, queuedTargetPosts, allSourceMediaUrls, appendPostsToFeed, currentTargetSubredditName, displayMessage, clearMessage]);
 
-  // Completely revised to guarantee source media loading first
+  // Fixed to ensure media is always loaded completely before attempting to display any posts
   const fetchInitialData = useCallback(async () => {
     console.log('[fetchInitialData] Starting data fetch');
     setIsProcessingData(true);
@@ -212,12 +213,14 @@ const Index = () => {
     setCurrentSourceSubredditsNames(sourceSubs);
     
     try {
-      // Show a loading message while we fetch media
-      displayMessage("Loading media sources...", 'info');
+      // We won't show any intermediate messages to avoid incorrect error states
       setIsLoadingInitialSources(true);
       
       // STEP 1: Fetch source media FIRST - wait for this to complete before proceeding
       console.log(`[fetchInitialData] Fetching media from ${sourceSubs.length} source subreddits`);
+      
+      // Create a local variable to store media before setting state
+      let collectedMedia: MediaInfo[] = [];
       
       const srcPromises = sourceSubs.map(name => fetchRedditData(name, 'hot', null, 75)
         .then(d => {
@@ -230,15 +233,14 @@ const Index = () => {
         }));
       
       const srcResults = await Promise.all(srcPromises);
-      const allMedia: MediaInfo[] = [];
-      srcResults.forEach(urls => allMedia.push(...urls));
+      srcResults.forEach(urls => collectedMedia.push(...urls));
       
       // Remove duplicates
-      const uniqueMedia = Array.from(new Map(allMedia.map(item => [item.url, item])).values());
-      console.log(`[fetchInitialData] Source media collected: ${uniqueMedia.length} unique items`);
+      collectedMedia = Array.from(new Map(collectedMedia.map(item => [item.url, item])).values());
+      console.log(`[fetchInitialData] Source media collected: ${collectedMedia.length} unique items`);
       
       // Check if we have source media before proceeding
-      if (uniqueMedia.length === 0) {
+      if (collectedMedia.length === 0) {
         displayMessage("No media found in source subreddits. Try different sources.", 'error');
         setIsLoadingPosts(false);
         setIsLoadingInitialSources(false);
@@ -247,9 +249,9 @@ const Index = () => {
       }
       
       // Media is available - set it and mark as ready
-      setAllSourceMediaUrls(uniqueMedia);
+      // IMPORTANT: Update state with the collected media BEFORE fetching target posts
+      setAllSourceMediaUrls(collectedMedia);
       setIsSourceMediaReady(true);
-      displayMessage("Mixing media with target posts...", 'info');
 
       // STEP 2: Now fetch target posts
       console.log(`[fetchInitialData] Fetching target posts from r/${targetSub}`);
@@ -269,7 +271,42 @@ const Index = () => {
       setTargetAfter(targetData.after);
       
       // Now that we have source media, directly append the posts to the feed
-      const postsAdded = appendPostsToFeed(targetData.posts);
+      // Use the locally collected media reference to ensure we have the latest data
+      const targetPosts = targetData.posts;
+      let postsAdded = 0;
+      let newDisplayPosts: PostData[] = [];
+      
+      targetPosts.forEach(post => {
+        const pData = post.data;
+        const isTrulyMediaPost = pData.post_hint === 'image' || pData.post_hint === 'hosted:video' || 
+          pData.post_hint === 'rich:video' || pData.is_video || pData.is_gallery || 
+          (pData.preview && pData.preview.images && pData.preview.images.length > 0 && 
+          pData.domain !== 'self.' + pData.subreddit.toLowerCase() && 
+          !pData.url.includes('/comments/'));
+        
+        if (isTrulyMediaPost) {
+          // Use the local media array which we know is populated
+          const randomMedia = collectedMedia.length > 0 
+            ? collectedMedia[Math.floor(Math.random() * collectedMedia.length)] 
+            : null;
+          
+          if (randomMedia) {
+            const postData: PostData = {
+              targetPostData: {
+                title: pData.title,
+                author: pData.author,
+                subreddit: pData.subreddit,
+                permalink: pData.permalink,
+                score: pData.score
+              },
+              replacementMedia: randomMedia
+            };
+            
+            newDisplayPosts.push(postData);
+            postsAdded++;
+          }
+        }
+      });
       
       if (postsAdded === 0) {
         if (targetData.posts.length > 0) {
@@ -278,7 +315,8 @@ const Index = () => {
           displayMessage(`No media posts found in r/${targetSub}.`, 'error');
         }
       } else {
-        // If posts were added successfully, clear any error messages
+        // If posts were added successfully, update the display posts and clear any error messages
+        setDisplayedPosts(newDisplayPosts);
         clearMessage();
       }
       
@@ -294,7 +332,7 @@ const Index = () => {
       setIsProcessingData(false);
       console.log('[fetchInitialData] Fetch operation completed');
     }
-  }, [targetSubreddit, sourceSubreddits, sortMode, topTimeFilter, appendPostsToFeed, clearMessage, displayMessage]);
+  }, [targetSubreddit, sourceSubreddits, sortMode, topTimeFilter, clearMessage, displayMessage]);
   
   const loadMoreTargetPosts = useCallback(async () => {
     if (isLoadingMore || noMoreTargetPosts || !currentTargetSubredditName || !targetAfter || !isSourceMediaReady) return;
