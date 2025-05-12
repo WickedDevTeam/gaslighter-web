@@ -94,6 +94,9 @@ const MediaModal: React.FC<MediaModalProps> = ({
 
   // Use different rendering approach based on mobile vs desktop
   if (isMobile) {
+    // Set initial slide to current index
+    const initialSlide = currentIndex;
+    
     return (
       <div 
         className="modal-overlay fixed inset-0 bg-black/95 z-[1000] flex flex-col"
@@ -113,7 +116,8 @@ const MediaModal: React.FC<MediaModalProps> = ({
           opts={{ 
             axis: 'y',
             loop: false, 
-            skipSnaps: false 
+            skipSnaps: false,
+            startIndex: initialSlide
           }}
         >
           <CarouselContent className="h-full">
