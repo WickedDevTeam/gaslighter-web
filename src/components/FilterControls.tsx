@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/useSettings';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Columns1, Columns3, Columns4 } from 'lucide-react';
+import { LayoutGrid, Columns3, LayoutList } from 'lucide-react';
 
 interface FilterControlsProps {
   targetSubreddit: string;
@@ -99,7 +99,7 @@ const FilterControls: React.FC<FilterControlsProps> = ({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <ToggleGroupItem value="compact" aria-label="Compact View">
-                        <Columns4 className="h-4 w-4" />
+                        <LayoutGrid className="h-4 w-4" />
                       </ToggleGroupItem>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -121,7 +121,7 @@ const FilterControls: React.FC<FilterControlsProps> = ({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <ToggleGroupItem value="extra-large" aria-label="Extra Large View">
-                        <Columns1 className="h-4 w-4" />
+                        <LayoutList className="h-4 w-4" />
                       </ToggleGroupItem>
                     </TooltipTrigger>
                     <TooltipContent>
