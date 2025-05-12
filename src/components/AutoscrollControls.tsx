@@ -2,13 +2,7 @@
 import React from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { 
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle, 
-} from '@/components/ui/drawer';
-import { X } from 'lucide-react';
+import { Settings } from 'lucide-react';
 
 interface AutoscrollControlsProps {
   isEnabled: boolean;
@@ -30,12 +24,12 @@ const AutoscrollControls: React.FC<AutoscrollControlsProps> = ({
   return (
     <div className="fixed bottom-4 right-4 z-50">
       {isEnabled && isPaused && (
-        <div className="fixed bottom-16 right-4 bg-black bg-opacity-70 text-white text-xs px-3 py-1 rounded-full">
+        <div className="fixed bottom-16 right-4 bg-black bg-opacity-70 text-white text-xs px-3 py-1 rounded-full animate-fade-in">
           Autoscroll paused (manual scroll)
         </div>
       )}
       
-      <div className="bg-background border rounded-lg shadow-lg overflow-hidden">
+      <div className="bg-[#1A1F2C] border border-[#333333] rounded-lg shadow-lg overflow-hidden backdrop-blur-sm transition-all duration-300">
         <div className="p-3">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
@@ -43,10 +37,11 @@ const AutoscrollControls: React.FC<AutoscrollControlsProps> = ({
                 checked={isEnabled} 
                 onCheckedChange={onToggle} 
                 id="autoscroll-toggle" 
+                className="data-[state=checked]:bg-purple"
               />
               <label 
                 htmlFor="autoscroll-toggle" 
-                className="text-sm font-medium cursor-pointer"
+                className="text-sm font-medium cursor-pointer text-white"
               >
                 Autoscroll
               </label>
@@ -54,8 +49,8 @@ const AutoscrollControls: React.FC<AutoscrollControlsProps> = ({
           </div>
           
           {isEnabled && (
-            <div className="flex items-center space-x-3">
-              <span className="text-xs">Slow</span>
+            <div className="flex items-center space-x-3 animate-fade-in">
+              <span className="text-xs text-gray-300">Slow</span>
               <Slider
                 value={[speed]}
                 min={1}
@@ -64,7 +59,7 @@ const AutoscrollControls: React.FC<AutoscrollControlsProps> = ({
                 onValueChange={(value) => onSpeedChange(value[0])}
                 className="w-40"
               />
-              <span className="text-xs">Fast</span>
+              <span className="text-xs text-gray-300">Fast</span>
             </div>
           )}
         </div>
