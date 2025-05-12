@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/useSettings';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { LayoutGrid, Columns3, LayoutList } from 'lucide-react';
+import Spinner from '@/components/Spinner';
 
 interface FilterControlsProps {
   targetSubreddit: string;
@@ -173,7 +174,12 @@ const FilterControls: React.FC<FilterControlsProps> = ({
             onClick={handleSubmit} 
             disabled={isLoadingPosts}
           >
-            {isLoadingPosts ? 'Loading...' : 'Gaslight!'}
+            {isLoadingPosts ? (
+              <>
+                <Spinner size="small" />
+                <span className="ml-2">Loading...</span>
+              </>
+            ) : 'Gaslight!'}
           </Button>
         </div>
       </div>
