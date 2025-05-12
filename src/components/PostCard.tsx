@@ -2,6 +2,7 @@
 import React from 'react';
 import { PostData, ViewMode } from '@/types';
 import MediaErrorPlaceholder from './MediaErrorPlaceholder';
+import { cn } from '@/lib/utils';
 
 interface PostCardProps {
   postData: PostData;
@@ -110,16 +111,22 @@ const PostCard: React.FC<PostCardProps> = ({
   if (viewMode === 'list') {
     return (
       <div className="card-content flex flex-col h-full" onClick={handlePostClick}>
-        <div className="list-view-media-container">
+        <div className="list-view-media-container relative">
           {renderMedia()}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/20 pointer-events-none" />
+          </div>
         </div>
-        <div className="p-4 flex flex-col flex-grow">
+        <div className="p-4 flex flex-col flex-grow bg-gradient-to-b from-[#1A1A1A] to-[#222222]">
           <h3 
-            className="card-title-text mb-2 leading-tight" 
+            className="text-white text-xl font-bold leading-tight mb-2 line-clamp-2"
             title={title}
             dangerouslySetInnerHTML={{ __html: title }}
           />
-          <p className="card-secondary-text mb-3 flex items-center gap-1">
+          <p className={cn(
+            "mb-3 flex items-center gap-1 text-sm",
+            "text-gray-300"
+          )}>
             <span className="font-semibold">u/{targetPostData.author}</span> 
             <span className="inline-block mx-1">•</span> 
             <span className="text-blue-400">r/{targetPostData.subreddit}</span> 
@@ -131,7 +138,7 @@ const PostCard: React.FC<PostCardProps> = ({
               href={`https://www.reddit.com${targetPostData.permalink}`}
               target="_blank" 
               rel="noopener noreferrer" 
-              className="card-link-text card-link-hover hover:underline inline-flex items-center"
+              className="text-blue-300 hover:text-blue-200 hover:underline inline-flex items-center text-sm"
             >
               View on Reddit
               <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
