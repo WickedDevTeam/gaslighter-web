@@ -5,7 +5,7 @@ import Spinner from '@/components/Spinner';
 import { PostData, ViewMode } from '@/types';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { WifiOff } from 'lucide-react';
+import { WifiOff, ShieldAlert } from 'lucide-react';
 
 interface PostFeedProps {
   displayedPosts: PostData[];
@@ -28,6 +28,11 @@ const PostFeed: React.FC<PostFeedProps> = ({
   const isNetworkError = message?.includes('Failed to fetch') || 
                          message?.includes('Network error') || 
                          message?.includes('Too many requests');
+                         
+  const isContentRestrictionError = message?.includes('403') || 
+                                   message?.includes('private') || 
+                                   message?.includes('quarantined') ||
+                                   message?.includes('NSFW');
 
   // Get the appropriate grid class for the current view mode
   const getGridClasses = () => {
@@ -48,7 +53,9 @@ const PostFeed: React.FC<PostFeedProps> = ({
       {displayedPosts.length === 0 && !isLoadingMore ? (
         <div className="text-center py-8 text-gray-500">
           <div className="mx-auto mb-4">
-            {isNetworkError ? (
+            {isContentRestrictionError ? (
+              <ShieldAlert className="h-16 w-16 mx-auto opacity-50" />
+            ) : isNetworkError ? (
               <WifiOff className="h-16 w-16 mx-auto opacity-50" />
             ) : (
               <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -57,13 +64,23 @@ const PostFeed: React.FC<PostFeedProps> = ({
             )}
           </div>
           <p className="text-lg font-medium">
-            {isNetworkError ? 'Network Connection Issue' : 'No posts to display'}
+            {isContentRestrictionError ? 'Content Restriction Issue' : 
+             isNetworkError ? 'Network Connection Issue' : 
+             'No posts to display'}
           </p>
           <p className="text-sm mt-1">
-            {isNetworkError 
-              ? 'Unable to connect to Reddit. Try again later.' 
-              : 'Enter subreddits and click "Load Posts"'}
+            {isContentRestrictionError ? 
+              'This may be an age-restricted, private, or quarantined subreddit.' : 
+             isNetworkError ? 
+              'Unable to connect to Reddit. Try using SFW (Safe for Work) subreddits or check your network.' : 
+              'Enter subreddits and click "Load Posts"'}
           </p>
+          {(isNetworkError || isContentRestrictionError) && (
+            <div className="mt-4 text-sm">
+              <p>Try these example SFW subreddits:</p>
+              <p className="text-blue-500 mt-1">pics, funny, aww, mildlyinteresting, EarthPorn</p>
+            </div>
+          )}
         </div>
       ) : (
         <div className={cn('grid grid-cols-1', getGridClasses())}>

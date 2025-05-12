@@ -30,7 +30,7 @@ export async function fetchRedditData(
       
       console.log(`Fetching from Reddit API: ${url}`);
       
-      // Use fetch directly, which will use the user's browser session and headers
+      // Attempt to use fetch with appropriate headers that won't trigger CORS issues
       const response = await fetch(url, { 
         cache: 'no-store',
         signal: controller.signal,
@@ -46,7 +46,7 @@ export async function fetchRedditData(
       
       if (!response.ok) {
         if (response.status === 404) throw new Error(`Subreddit r/${subreddit} not found.`);
-        if (response.status === 403) throw new Error(`Subreddit r/${subreddit} is private/quarantined.`);
+        if (response.status === 403) throw new Error(`Subreddit r/${subreddit} is private, quarantined, or age-restricted (NSFW).`);
         if (response.status === 429) {
           // Rate limited - wait longer between retries
           await new Promise(resolve => setTimeout(resolve, 2000 * (retries + 1)));
@@ -83,6 +83,11 @@ export async function fetchRedditData(
         continue;
       }
       
+      // Check if error might be related to NSFW content
+      if (error.message.includes('403')) {
+        throw new Error(`Subreddit r/${subreddit} appears to be age-restricted (NSFW), private, or quarantined.`);
+      }
+      
       // If it's a network error, retry
       if (error.message.includes('Failed to fetch')) {
         console.log(`Network error for r/${subreddit}, retry ${retries + 1}/${maxRetries}`);
@@ -97,6 +102,10 @@ export async function fetchRedditData(
   }
   
   // If we've exhausted retries, throw the last error
+  if (lastError?.message.includes('Failed to fetch')) {
+    throw new Error(`Network error: Unable to connect to Reddit. Try different subreddits or check your connection.`);
+  }
+  
   throw lastError || new Error(`Failed to fetch after ${maxRetries} retries.`);
 }
 
