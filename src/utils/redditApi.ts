@@ -30,11 +30,15 @@ export async function fetchRedditData(
       
       console.log(`Fetching from Reddit API: ${url}`);
       
+      // Use fetch directly, which will use the user's browser session and headers
       const response = await fetch(url, { 
         cache: 'no-store',
         signal: controller.signal,
+        credentials: 'omit', // Don't send cookies for cross-origin requests
+        mode: 'cors', // Explicitly specify CORS mode
         headers: {
-          'User-Agent': 'web:gaslighter:v1.0'
+          // Use standard browser headers
+          'Accept': 'application/json'
         }
       });
       
