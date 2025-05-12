@@ -92,6 +92,75 @@ export async function fetchRedditData(
 }
 
 /**
+ * Fetches from multiple subreddits and combines the results
+ */
+export async function fetchMultipleSubreddits(
+  subreddits: string[],
+  sort: string,
+  timeFilter: string | null = null,
+  limit: number = 25,
+  afterToken: string | null = null
+): Promise<RedditResponse> {
+  // If only one subreddit, use the standard fetch
+  if (subreddits.length === 1) {
+    return fetchRedditData(subreddits[0], sort, timeFilter, limit, afterToken);
+  }
+
+  // For multiple subreddits, we need to fetch each one separately
+  const promises = subreddits.map(subreddit => 
+    fetchRedditData(subreddit, sort, timeFilter, Math.floor(limit / subreddits.length) + 1, afterToken)
+      .catch(err => {
+        console.log(`Error fetching r/${subreddit}:`, err);
+        return { posts: [], after: null };
+      })
+  );
+
+  const results = await Promise.all(promises);
+
+  // Combine the results
+  const allPosts: RedditPost[] = [];
+  let hasValidResponse = false;
+  
+  results.forEach(result => {
+    if (result.posts.length > 0) {
+      hasValidResponse = true;
+      allPosts.push(...result.posts);
+    }
+  });
+
+  if (!hasValidResponse) {
+    throw new Error("No posts found in any of the target subreddits.");
+  }
+
+  // Shuffle the posts for randomization
+  const shuffledPosts = shuffleArray(allPosts);
+  
+  // Use the 'after' token from the first successful response for pagination
+  const afterTokens = results
+    .filter(r => r.after !== null)
+    .map(r => r.after);
+  
+  const nextAfter = afterTokens.length > 0 ? afterTokens[0] : null;
+  
+  return {
+    posts: shuffledPosts,
+    after: nextAfter
+  };
+}
+
+/**
+ * Fisher-Yates shuffle algorithm for proper randomization
+ */
+export function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+/**
  * Fetches subreddit suggestions for autocomplete
  */
 export async function fetchSubredditSuggestions(query: string): Promise<Array<{name: string}>> {

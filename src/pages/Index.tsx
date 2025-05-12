@@ -7,7 +7,7 @@ import MediaModal from '@/components/MediaModal';
 import Spinner from '@/components/Spinner';
 import FilterControls from '@/components/FilterControls';
 import AutoscrollControls from '@/components/AutoscrollControls';
-import { fetchRedditData, extractMediaUrls } from '@/utils/redditApi';
+import { fetchRedditData, extractMediaUrls, fetchMultipleSubreddits, shuffleArray } from '@/utils/redditApi';
 import { PostData, ViewMode, SortMode, TopTimeFilter, MediaInfo } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
 import { useAutoscroll } from '@/hooks/useAutoscroll';
@@ -218,16 +218,18 @@ const Index = () => {
     setIsSourceMediaReady(false);
     setQueuedTargetPosts([]);
     
-    const targetSub = targetSubreddit.trim().replace(/^r\//i, '');
+    const targetSubsRaw = targetSubreddit.trim();
     const sourceSubsRaw = sourceSubreddits.trim();
     
-    if (!targetSub || !sourceSubsRaw) {
+    if (!targetSubsRaw || !sourceSubsRaw) {
       displayMessage("Please enter both target and source subreddits.", 'error');
       setIsLoadingPosts(false);
       setIsProcessingData(false);
       return;
     }
     
+    // Split target subreddits by comma
+    const targetSubs = targetSubsRaw.split(',').map(s => s.trim().replace(/^r\//i, '').replace(/\/$/, '')).filter(s => s);
     const sourceSubs = sourceSubsRaw.split(',').map(s => s.trim().replace(/^r\//i, '').replace(/\/$/, '')).filter(s => s);
     
     if (sourceSubs.length === 0) {
@@ -237,7 +239,14 @@ const Index = () => {
       return;
     }
     
-    setCurrentTargetSubredditName(targetSub);
+    if (targetSubs.length === 0) {
+      displayMessage("Please enter valid, comma-separated target subreddits.", 'error');
+      setIsLoadingPosts(false);
+      setIsProcessingData(false);
+      return;
+    }
+    
+    setCurrentTargetSubredditName(targetSubs.join(', '));
     setCurrentSourceSubredditsNames(sourceSubs);
     
     try {
@@ -290,6 +299,9 @@ const Index = () => {
         collectedMedia.push(...mediaItems);
       });
       
+      // Shuffle the source media for better randomization
+      collectedMedia = shuffleArray(collectedMedia);
+      
       // Remove duplicates
       collectedMedia = Array.from(new Map(collectedMedia.map(item => [item.url, item])).values());
       console.log(`[fetchInitialData] Source media collected: ${collectedMedia.length} unique items`);
@@ -313,7 +325,7 @@ const Index = () => {
       setIsSourceMediaReady(true);
 
       // STEP 2: Now fetch target posts
-      console.log(`[fetchInitialData] Fetching target posts from r/${targetSub}`);
+      console.log(`[fetchInitialData] Fetching target posts from r/${targetSubs.join(', ')}`);
       
       // Try multiple sort modes for target if needed
       const targetSortOptions = [sortMode, 'hot', 'new', 'top'];
@@ -323,20 +335,21 @@ const Index = () => {
       for (const targetSortOption of targetSortOptions) {
         try {
           const timeFilter = targetSortOption === 'top' ? topTimeFilter : null;
-          const data = await fetchRedditData(targetSub, targetSortOption, timeFilter, 25, null);
+          // Use the new multiple subreddits fetch function
+          const data = await fetchMultipleSubreddits(targetSubs, targetSortOption, timeFilter, 25, null);
           if (data.posts && data.posts.length > 0) {
             targetData = data;
             usedSortMode = targetSortOption as SortMode;
             break;
           }
         } catch (err) {
-          console.log(`Error with ${targetSortOption} for r/${targetSub}:`, err);
+          console.log(`Error with ${targetSortOption} for r/${targetSubs.join(', ')}:`, err);
           // Try next sort option
         }
       }
 
       if (!targetData || !targetData.posts || targetData.posts.length === 0) {
-        displayMessage(`No posts found in r/${targetSub} for selected filters.`, 'error');
+        displayMessage(`No posts found in r/${targetSubs.join(', ')} for selected filters.`, 'error');
         setIsLoadingPosts(false);
         setIsLoadingInitialSources(false);
         setIsProcessingData(false);
@@ -350,7 +363,7 @@ const Index = () => {
         setSortMode(usedSortMode);
         toast({
           title: `Using "${usedSortMode}" sorting`,
-          description: `"${sortMode}" returned no posts for r/${targetSub}`,
+          description: `"${sortMode}" returned no posts for r/${targetSubs.join(', ')}`,
           duration: 3000
         });
       }
@@ -404,9 +417,9 @@ const Index = () => {
       
       if (postsAdded === 0) {
         if (targetData.posts.length > 0) {
-          displayMessage(`Found posts in r/${targetSub}, but none had replaceable media.`, 'error');
+          displayMessage(`Found posts in r/${targetSubs.join(', ')}, but none had replaceable media.`, 'error');
         } else {
-          displayMessage(`No media posts found in r/${targetSub}.`, 'error');
+          displayMessage(`No media posts found in r/${targetSubs.join(', ')}.`, 'error');
         }
       } else {
         // If posts were added successfully, update the display posts and clear any error messages
@@ -432,7 +445,12 @@ const Index = () => {
     if (isLoadingMore || noMoreTargetPosts || !currentTargetSubredditName || !targetAfter || !isSourceMediaReady) return;
     setIsLoadingMore(true);
     try {
-      const data = await fetchRedditData(currentTargetSubredditName, sortMode, topTimeFilter, 15, targetAfter);
+      // Split target subreddits by comma for loading more
+      const targetSubs = currentTargetSubredditName.split(', ').filter(Boolean);
+      
+      // Use fetchMultipleSubreddits for consistency
+      const data = await fetchMultipleSubreddits(targetSubs, sortMode, topTimeFilter, 15, targetAfter);
+      
       if (data.posts?.length > 0) {
         // Only try to append posts if we have source media available
         if (allSourceMediaUrls.length > 0) {

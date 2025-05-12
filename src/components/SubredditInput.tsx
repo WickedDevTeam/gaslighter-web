@@ -12,7 +12,7 @@ interface SubredditInputProps {
   placeholder: string;
   onChange: (value: string) => void;
   isSourceField?: boolean;
-  className?: string; // Added className prop
+  className?: string;
 }
 
 const SubredditInput: React.FC<SubredditInputProps> = ({
@@ -22,16 +22,17 @@ const SubredditInput: React.FC<SubredditInputProps> = ({
   placeholder,
   onChange,
   isSourceField = false,
-  className, // Added className to component props
+  className,
 }) => {
   const [suggestions, setSuggestions] = useState<Array<{ name: string }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [cursorPosition, setCursorPosition] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  const fetchSuggestions = async (query: string) => {
+  const fetchSuggestions = async (query: string, position: number) => {
     if (!query || query.length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -40,13 +41,24 @@ const SubredditInput: React.FC<SubredditInputProps> = ({
 
     setIsLoading(true);
     try {
-      let term = query;
-      if (isSourceField) {
-        term = query.split(',').pop()?.trim() || '';
+      // Extract the current subreddit being typed
+      const allSubs = query.split(',');
+      let currentSubIndex = 0;
+      let currentPosition = 0;
+      
+      // Find which subreddit is being edited based on cursor position
+      for (let i = 0; i < allSubs.length; i++) {
+        currentPosition += allSubs[i].length + (i > 0 ? 1 : 0); // +1 for the comma
+        if (position <= currentPosition) {
+          currentSubIndex = i;
+          break;
+        }
       }
       
-      if (term.length >= 2) {
-        const results = await fetchSubredditSuggestions(term);
+      const currentSub = allSubs[currentSubIndex].trim();
+      
+      if (currentSub.length >= 2) {
+        const results = await fetchSubredditSuggestions(currentSub);
         setSuggestions(results);
         setShowSuggestions(results.length > 0);
       } else {
@@ -63,15 +75,18 @@ const SubredditInput: React.FC<SubredditInputProps> = ({
   };
 
   // Debounce the fetch function
-  const debouncedFetch = debounce(fetchSuggestions, 350);
+  const debouncedFetch = debounce((query: string, position: number) => fetchSuggestions(query, position), 350);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
+    const cursorPos = e.target.selectionStart || 0;
+    
     onChange(newValue);
     setSearchTerm(newValue);
+    setCursorPosition(cursorPos);
     
     if (newValue && newValue.length >= 2) {
-      debouncedFetch(newValue);
+      debouncedFetch(newValue, cursorPos);
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -79,19 +94,54 @@ const SubredditInput: React.FC<SubredditInputProps> = ({
   };
 
   const handleSuggestionClick = (suggestion: string) => {
-    if (isSourceField) {
-      const parts = value.split(',');
-      parts[parts.length - 1] = suggestion;
-      const newValue = parts.join(',') + ', ';
-      onChange(newValue);
-      setSearchTerm(newValue);
-    } else {
-      onChange(suggestion);
-      setSearchTerm(suggestion);
+    // Split the input value by commas
+    const parts = value.split(',');
+    let charCount = 0;
+    let targetIndex = 0;
+    
+    // Find which part the cursor is in
+    for (let i = 0; i < parts.length; i++) {
+      charCount += parts[i].length + (i > 0 ? 1 : 0); // +1 for comma
+      if (cursorPosition <= charCount) {
+        targetIndex = i;
+        break;
+      }
     }
+    
+    // Replace that part with the suggestion
+    parts[targetIndex] = suggestion;
+    
+    // Join back with commas and add a trailing comma+space if not at the end
+    let newValue = parts.join(',');
+    if (targetIndex === parts.length - 1) {
+      newValue += ', ';
+    }
+    
+    onChange(newValue);
+    setSearchTerm(newValue);
+    
     setSuggestions([]);
     setShowSuggestions(false);
+    
+    // Focus the input and place cursor after the inserted suggestion
     inputRef.current?.focus();
+    
+    // Calculate new cursor position
+    let newPosition = 0;
+    for (let i = 0; i <= targetIndex; i++) {
+      newPosition += parts[i].length;
+      if (i < targetIndex) newPosition += 1; // Add 1 for each comma before our target
+    }
+    
+    if (targetIndex === parts.length - 1) newPosition += 2; // Add 2 for the trailing comma and space
+    
+    // Set cursor position after a short delay to ensure input has updated
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.selectionStart = newPosition;
+        inputRef.current.selectionEnd = newPosition;
+      }
+    }, 0);
   };
 
   useEffect(() => {
@@ -117,6 +167,17 @@ const SubredditInput: React.FC<SubredditInputProps> = ({
       setSearchTerm(value);
     }
   }, [value, searchTerm]);
+  
+  // Handle cursor movement
+  const handleSelect = (e: React.SyntheticEvent<HTMLInputElement>) => {
+    const cursorPos = e.currentTarget.selectionStart || 0;
+    setCursorPosition(cursorPos);
+    
+    // Re-fetch suggestions based on the new cursor position
+    if (searchTerm && searchTerm.length >= 2) {
+      debouncedFetch(searchTerm, cursorPos);
+    }
+  };
 
   return (
     <div className={cn("flex flex-col space-y-1.5 w-full", className)}>
@@ -135,9 +196,10 @@ const SubredditInput: React.FC<SubredditInputProps> = ({
           placeholder={placeholder}
           value={searchTerm}
           onChange={handleInputChange}
+          onSelect={handleSelect}
           onFocus={() => {
             if (searchTerm && searchTerm.length >= 2) {
-              debouncedFetch(searchTerm);
+              debouncedFetch(searchTerm, inputRef.current?.selectionStart || 0);
             }
           }}
           autoComplete="off"
