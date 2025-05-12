@@ -76,89 +76,97 @@ const FilterControls: React.FC<FilterControlsProps> = ({
 
   return (
     <div className="p-4 rounded-lg">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <SubredditInput 
-            id="targetSubreddit" 
-            label="Target Subreddit" 
-            value={targetSubreddit} 
-            onChange={onTargetChange} 
-            placeholder="e.g., news"
-          />
-          
-          <SubredditInput 
-            id="sourceSubreddits" 
-            label="Source Subreddits (comma-separated)" 
-            value={sourceSubreddits} 
-            onChange={onSourceChange} 
-            placeholder="e.g., cats, dogpictures" 
-            isSourceField 
-          />
+      <div className="flex flex-col md:flex-row gap-4">
+        {/* Left column - Inputs */}
+        <div className="flex-grow space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <SubredditInput 
+              id="targetSubreddit" 
+              label="Target Subreddit" 
+              value={targetSubreddit} 
+              onChange={onTargetChange} 
+              placeholder="e.g., news"
+            />
+            
+            <SubredditInput 
+              id="sourceSubreddits" 
+              label="Source Subreddits (comma-separated)" 
+              value={sourceSubreddits} 
+              onChange={onSourceChange} 
+              placeholder="e.g., cats, dogpictures" 
+              isSourceField 
+            />
+          </div>
         </div>
         
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="sortModeSelect" className="form-label">Sort By:</label>
-              <select 
-                id="sortModeSelect" 
-                className="form-input select-filter-arrow w-full" 
-                value={sortMode} 
-                onChange={e => onSortModeChange(e.target.value as SortMode)}
-              >
-                <option value="hot">Hot</option>
-                <option value="new">New</option>
-                <option value="top">Top</option>
-              </select>
+        {/* Right column - Controls and Button */}
+        <div className="flex flex-col md:flex-row gap-3 md:items-end">
+          {/* Sort Controls */}
+          <div className="flex-grow">
+            <div className="flex gap-2 items-end">
+              <div className="flex-grow">
+                <label htmlFor="sortModeSelect" className="form-label text-xs">Sort By:</label>
+                <select 
+                  id="sortModeSelect" 
+                  className="form-input select-filter-arrow h-9 text-sm" 
+                  value={sortMode} 
+                  onChange={e => onSortModeChange(e.target.value as SortMode)}
+                >
+                  <option value="hot">Hot</option>
+                  <option value="new">New</option>
+                  <option value="top">Top</option>
+                </select>
+              </div>
               
               {sortMode === 'top' && (
-                <div className="mt-2">
-                  <label htmlFor="topTimeFilterSelect" className="form-label">Top From:</label>
+                <div className="flex-grow">
+                  <label htmlFor="topTimeFilterSelect" className="form-label text-xs">Top From:</label>
                   <select 
                     id="topTimeFilterSelect" 
-                    className="form-input select-filter-arrow w-full" 
+                    className="form-input select-filter-arrow h-9 text-sm" 
                     value={topTimeFilter} 
                     onChange={e => onTopTimeFilterChange(e.target.value as TopTimeFilter)}
                   >
                     <option value="day">Today</option>
-                    <option value="week">This Week</option>
-                    <option value="month">This Month</option>
-                    <option value="year">This Year</option>
+                    <option value="week">Week</option>
+                    <option value="month">Month</option>
+                    <option value="year">Year</option>
                     <option value="all">All Time</option>
                   </select>
                 </div>
               )}
             </div>
-            
-            <div>
-              <label className="form-label">View As:</label>
-              <ToggleGroup 
-                type="single" 
-                value={viewMode}
-                onValueChange={(value) => value && onViewModeChange(value as ViewMode)}
-                className="flex flex-col gap-2 mt-1"
-              >
-                <ToggleGroupItem value="compact" aria-label="Compact View" className="w-full justify-start gap-2">
-                  <LayoutGrid className="h-4 w-4" />
-                  <span>Compact (4 cols)</span>
-                </ToggleGroupItem>
-
-                <ToggleGroupItem value="large" aria-label="Large View" className="w-full justify-start gap-2">
-                  <Columns3 className="h-4 w-4" />
-                  <span>Large (2 cols)</span>
-                </ToggleGroupItem>
-
-                <ToggleGroupItem value="extra-large" aria-label="Extra Large View" className="w-full justify-start gap-2">
-                  <LayoutList className="h-4 w-4" />
-                  <span>Extra Large (1 col)</span>
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
           </div>
           
+          {/* View Controls */}
+          <div>
+            <label className="form-label text-xs block mb-1">View As:</label>
+            <ToggleGroup 
+              type="single" 
+              value={viewMode}
+              onValueChange={(value) => value && onViewModeChange(value as ViewMode)}
+              className="flex gap-1"
+            >
+              <ToggleGroupItem value="compact" aria-label="Compact View" className="h-9 px-2 text-xs">
+                <LayoutGrid className="h-3 w-3 mr-1" />
+                <span>Compact</span>
+              </ToggleGroupItem>
+
+              <ToggleGroupItem value="large" aria-label="Large View" className="h-9 px-2 text-xs">
+                <Columns3 className="h-3 w-3 mr-1" />
+                <span>Large</span>
+              </ToggleGroupItem>
+
+              <ToggleGroupItem value="extra-large" aria-label="Extra Large View" className="h-9 px-2 text-xs">
+                <LayoutList className="h-3 w-3 mr-1" />
+                <span>XL</span>
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+          
+          {/* Gaslight Button */}
           <Button 
-            className="w-full h-10 mt-4" 
-            variant="default"
+            className="h-9 bg-purple-500 hover:bg-purple-600 text-white" 
             onClick={handleSubmit} 
             disabled={isLoadingPosts}
           >

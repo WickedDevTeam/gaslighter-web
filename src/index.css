@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -49,6 +50,9 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    --purple: 262 83% 58%;
+    --purple-foreground: 0 0% 100%;
   }
 
   .dark {
@@ -87,6 +91,9 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    --purple: 262 83% 58%;
+    --purple-foreground: 0 0% 100%;
   }
 }
 
@@ -97,5 +104,17 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+  
+  .form-label {
+    @apply text-sm font-medium mb-1 block text-gray-700 dark:text-gray-300;
+  }
+  
+  .form-input {
+    @apply w-full px-3 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400;
+  }
+  
+  .select-filter-arrow {
+    @apply bg-no-repeat bg-[right_0.5rem_center] bg-[length:1rem] appearance-none pr-7;
   }
 }
