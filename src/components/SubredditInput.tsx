@@ -2,6 +2,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { fetchSubredditSuggestions } from '@/utils/redditApi';
 import { debounce } from '@/utils/debounce';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 interface SubredditInputProps {
   id: string;
@@ -22,13 +24,26 @@ const SubredditInput: React.FC<SubredditInputProps> = ({
 }) => {
   const [suggestions, setSuggestions] = useState<Array<{ name: string }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
   const fetchSuggestions = async (query: string) => {
-    if (isSourceField) {
-      const term = query.split(',').pop()?.trim() || '';
-      if (term) {
+    if (!query || query.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      let term = query;
+      if (isSourceField) {
+        term = query.split(',').pop()?.trim() || '';
+      }
+      
+      if (term.length >= 2) {
         const results = await fetchSubredditSuggestions(term);
         setSuggestions(results);
         setShowSuggestions(results.length > 0);
@@ -36,15 +51,12 @@ const SubredditInput: React.FC<SubredditInputProps> = ({
         setSuggestions([]);
         setShowSuggestions(false);
       }
-    } else {
-      if (query) {
-        const results = await fetchSubredditSuggestions(query);
-        setSuggestions(results);
-        setShowSuggestions(results.length > 0);
-      } else {
-        setSuggestions([]);
-        setShowSuggestions(false);
-      }
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+      setSuggestions([]);
+      setShowSuggestions(false);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -54,18 +66,30 @@ const SubredditInput: React.FC<SubredditInputProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     onChange(newValue);
-    debouncedFetch(newValue);
+    setSearchTerm(newValue);
+    
+    if (newValue && newValue.length >= 2) {
+      debouncedFetch(newValue);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
   };
 
   const handleSuggestionClick = (suggestion: string) => {
     if (isSourceField) {
       const parts = value.split(',');
       parts[parts.length - 1] = suggestion;
-      onChange(parts.join(',') + ', ');
+      const newValue = parts.join(',') + ', ';
+      onChange(newValue);
+      setSearchTerm(newValue);
     } else {
       onChange(suggestion);
+      setSearchTerm(suggestion);
     }
+    setSuggestions([]);
     setShowSuggestions(false);
+    inputRef.current?.focus();
   };
 
   useEffect(() => {
@@ -86,58 +110,64 @@ const SubredditInput: React.FC<SubredditInputProps> = ({
   }, []);
 
   useEffect(() => {
-    if (inputRef.current === document.activeElement && value) {
-      if (isSourceField) {
-        const term = value.split(',').pop()?.trim();
-        if (term) debouncedFetch(value);
-      } else {
-        debouncedFetch(value);
-      }
+    // Update the searchTerm when value changes from outside
+    if (value !== searchTerm) {
+      setSearchTerm(value);
     }
-  }, [value, isSourceField]);
+  }, [value, searchTerm]);
 
   return (
-    <div className="input-wrapper relative">
-      <label htmlFor={id} className="form-label">
+    <div className="flex flex-col space-y-1.5 w-full">
+      <label htmlFor={id} className="text-sm font-medium text-white/80">
         {label}
       </label>
-      <input
-        type="text"
-        id={id}
-        ref={inputRef}
-        className="form-input w-full placeholder-opacity-100"
-        placeholder={placeholder}
-        value={value}
-        onChange={handleInputChange}
-        onFocus={() => {
-          if (value) {
-            if (isSourceField) {
-              const term = value.split(',').pop()?.trim();
-              if (term) debouncedFetch(value);
-            } else {
-              debouncedFetch(value);
+      <div className="relative w-full">
+        <Input
+          type="text"
+          id={id}
+          ref={inputRef}
+          className={cn(
+            "w-full bg-[#2A2A2E] border-[#444] text-white placeholder:text-gray-500",
+            showSuggestions && "rounded-b-none border-b-0"
+          )}
+          placeholder={placeholder}
+          value={searchTerm}
+          onChange={handleInputChange}
+          onFocus={() => {
+            if (searchTerm && searchTerm.length >= 2) {
+              debouncedFetch(searchTerm);
             }
-          }
-        }}
-        autoComplete="off"
-      />
-      
-      {showSuggestions && (
-        <div 
-          ref={suggestionsRef}
-          className="suggestions-container absolute bg-[#1A1A1A] border border-[#2A2A2E] border-t-0 rounded-b-md z-60 max-h-40 overflow-y-auto w-full shadow-md"
-        >
-          {suggestions.slice(0, 7).map((sub) => (
-            <div
-              key={sub.name}
-              className="suggestion-item p-1.5 cursor-pointer text-[#D1D5DB] text-xs hover:bg-[#27272A] hover:text-white"
-              onClick={() => handleSuggestionClick(sub.name)}
-            >
-              {sub.name}
-            </div>
-          ))}
-        </div>
-      )}
+          }}
+          autoComplete="off"
+        />
+        
+        {isLoading && (
+          <div className="absolute right-3 top-3">
+            <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+          </div>
+        )}
+        
+        {showSuggestions && (
+          <div 
+            ref={suggestionsRef}
+            className="absolute z-50 w-full bg-[#2A2A2E] border border-[#444] rounded-b-md shadow-lg max-h-[200px] overflow-y-auto"
+          >
+            {suggestions.length > 0 ? (
+              suggestions.map((sub, index) => (
+                <div
+                  key={`${sub.name}-${index}`}
+                  className="px-3 py-2 cursor-pointer hover:bg-[#3A3A3E] text-white transition-colors"
+                  onClick={() => handleSuggestionClick(sub.name)}
+                >
+                  r/{sub.name}
+                </div>
+              ))
+            ) : (
+              <div className="px-3 py-2 text-gray-400 italic">No matches found</div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

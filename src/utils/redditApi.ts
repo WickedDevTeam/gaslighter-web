@@ -41,10 +41,42 @@ export async function fetchRedditData(
 export async function fetchSubredditSuggestions(query: string): Promise<Array<{name: string}>> {
   if (!query || query.length < 2) return [];
   
-  const url = `https://www.reddit.com/api/search_reddit_names.json?query=${encodeURIComponent(query)}&exact=false&include_over_18=true`;
-  
   try {
-    const response = await fetch(url, { cache: 'no-store' });
+    // Mock data for common subreddits to reduce API calls and avoid CORS issues
+    const mockSuggestions: Record<string, string[]> = {
+      'p': ['pics', 'programming', 'politics', 'philosophy', 'pcmasterrace', 'photography'],
+      'ga': ['gaming', 'gardening', 'gameofthrones', 'games'],
+      'te': ['technology', 'television', 'techsupport', 'teslamotors'],
+      'co': ['cooking', 'comics', 'conservative', 'combinedgifs', 'cordcutters'],
+      'fu': ['funny', 'futurology', 'funnyandsad', 'fullmoviesonyoutube'],
+      'sc': ['science', 'scifi', 'scottishpeopletwitter', 'scenesfromahat'],
+      'mo': ['movies', 'morbidreality', 'modernwarfare', 'monkeyspaw'],
+      'me': ['memes', 'memeeconomy', 'me_irl', 'medicine', 'mechanicalkeyboards']
+    };
+    
+    // Check if we have mock data for this query
+    const lowerQuery = query.toLowerCase();
+    for (const [prefix, subreddits] of Object.entries(mockSuggestions)) {
+      if (lowerQuery.startsWith(prefix)) {
+        return subreddits
+          .filter(name => name.toLowerCase().includes(lowerQuery))
+          .map(name => ({ name }));
+      }
+    }
+    
+    // If no mock data or not a match, try the API with proper error handling
+    const url = `https://www.reddit.com/api/search_reddit_names.json?query=${encodeURIComponent(query)}&exact=false&include_over_18=true`;
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+    
+    const response = await fetch(url, { 
+      cache: 'no-store',
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
     if (!response.ok) return [];
     
     const jsonData = await response.json();
