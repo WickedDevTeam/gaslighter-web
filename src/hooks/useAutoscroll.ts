@@ -20,9 +20,24 @@ export function useAutoscroll({ isEnabled, speed, scrollContainer }: AutoscrollO
   
   // Convert speed to actual pixel scroll amount
   // With the new preset system:
-  // - Higher speed number = slower scrolling (dividing by the speed)
-  // - Lower speed number = faster scrolling (dividing by the speed)
-  const pixelsPerInterval = BASE_SPEED_FACTOR * (10 / speed); // Invert the relationship
+  // - Slow (8): Slowest scrolling
+  // - Medium (5): Significantly faster than slow
+  // - Fast (2): Very fast scrolling
+  const getScrollAmount = () => {
+    // Create more dramatic differences between speed settings
+    switch(speed) {
+      case 8: // SLOW
+        return BASE_SPEED_FACTOR * 1.0;
+      case 5: // MEDIUM - significantly faster
+        return BASE_SPEED_FACTOR * 3.0;
+      case 2: // FAST - very fast
+        return BASE_SPEED_FACTOR * 7.0;
+      default:
+        return BASE_SPEED_FACTOR * (10 / speed);
+    }
+  };
+  
+  const pixelsPerInterval = getScrollAmount();
   
   // Throttled scroll function for smooth scrolling
   const scrollPage = useCallback(

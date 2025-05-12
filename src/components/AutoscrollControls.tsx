@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Volume1, Volume2, VolumeX, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, ArrowDown, ArrowRight, FastForward } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface AutoscrollControlsProps {
@@ -70,27 +70,27 @@ const AutoscrollControls: React.FC<AutoscrollControlsProps> = ({
                       size="sm" 
                       variant={speed === SPEED_PRESETS.SLOW ? "default" : "outline"}
                       onClick={() => onSpeedChange(SPEED_PRESETS.SLOW)}
-                      className={`justify-start ${speed === SPEED_PRESETS.SLOW ? 'bg-purple-500 hover:bg-purple-600 text-white' : 'text-gray-300'}`}
+                      className={`justify-start ${speed === SPEED_PRESETS.SLOW ? 'bg-purple-500 hover:bg-purple-600 text-white' : 'text-gray-800 bg-gray-200 hover:bg-gray-300'}`}
                     >
-                      <Volume1 size={16} className="mr-2" />
+                      <ArrowDown size={16} className="mr-2" />
                       Slow
                     </Button>
                     <Button 
                       size="sm" 
                       variant={speed === SPEED_PRESETS.MEDIUM ? "default" : "outline"}
                       onClick={() => onSpeedChange(SPEED_PRESETS.MEDIUM)}
-                      className={`justify-start ${speed === SPEED_PRESETS.MEDIUM ? 'bg-purple-500 hover:bg-purple-600 text-white' : 'text-gray-300'}`}
+                      className={`justify-start ${speed === SPEED_PRESETS.MEDIUM ? 'bg-purple-500 hover:bg-purple-600 text-white' : 'text-gray-800 bg-gray-200 hover:bg-gray-300'}`}
                     >
-                      <Volume2 size={16} className="mr-2" />
+                      <ArrowRight size={16} className="mr-2" />
                       Medium
                     </Button>
                     <Button 
                       size="sm" 
                       variant={speed === SPEED_PRESETS.FAST ? "default" : "outline"}
                       onClick={() => onSpeedChange(SPEED_PRESETS.FAST)}
-                      className={`justify-start ${speed === SPEED_PRESETS.FAST ? 'bg-purple-500 hover:bg-purple-600 text-white' : 'text-gray-300'}`}
+                      className={`justify-start ${speed === SPEED_PRESETS.FAST ? 'bg-purple-500 hover:bg-purple-600 text-white' : 'text-gray-800 bg-gray-200 hover:bg-gray-300'}`}
                     >
-                      <VolumeX size={16} className="mr-2" />
+                      <FastForward size={16} className="mr-2" />
                       Fast
                     </Button>
                   </div>
