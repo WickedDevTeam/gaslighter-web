@@ -137,7 +137,7 @@ const FilterControls: React.FC<FilterControlsProps> = ({
       </div>
       
       {/* Second row - View controls and Gaslight button */}
-      <div className="flex justify-between items-end mb-3">
+      <div className="flex justify-between items-center mb-3">
         {/* View As controls */}
         <div>
           <label className="form-label text-xs block mb-1">View As:</label>
@@ -166,10 +166,10 @@ const FilterControls: React.FC<FilterControlsProps> = ({
           </div>
         </div>
         
-        {/* Gaslight button */}
+        {/* Gaslight button with improved styling */}
         <div>
           <Button 
-            className="h-11 px-8 bg-purple hover:bg-purple/90 shadow-lg transition-all hover:shadow-xl hover:scale-105 text-white font-semibold text-base" 
+            className="h-11 px-8 bg-purple hover:bg-purple/90 shadow-lg transition-all hover:shadow-xl hover:scale-105 text-white font-semibold text-base rounded-md" 
             onClick={handleSubmit} 
             disabled={isLoadingPosts}
           >
