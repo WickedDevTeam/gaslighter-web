@@ -82,13 +82,7 @@ const PostCard: React.FC<PostCardProps> = ({
           <h3 className="text-white text-xl font-bold leading-tight mb-2 line-clamp-2" title={title} dangerouslySetInnerHTML={{
           __html: title
         }} />
-          <p className={cn("mb-3 flex items-center gap-1 text-sm", "text-gray-300")}>
-            <span className="font-semibold">u/{targetPostData.author}</span> 
-            <span className="inline-block mx-1">•</span> 
-            <span className="text-blue-400">r/{targetPostData.subreddit}</span> 
-            <span className="inline-block mx-1">•</span> 
-            <span>{targetPostData.score} pts</span>
-          </p>
+          
           
         </div>
       </div>;
