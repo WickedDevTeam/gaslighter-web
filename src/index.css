@@ -117,4 +117,35 @@
   .select-filter-arrow {
     @apply bg-no-repeat bg-[right_0.5rem_center] bg-[length:1rem] appearance-none pr-7;
   }
+
+  /* Mobile fullscreen modal styles */
+  .modal-backdrop-blur {
+    @apply backdrop-blur-sm;
+  }
+
+  .mobile-modal-controls {
+    @apply transition-opacity duration-300;
+  }
+
+  .mobile-modal-title {
+    @apply bg-black/70 backdrop-blur-sm rounded-lg p-3 shadow-lg;
+  }
+
+  .mobile-modal-nav {
+    @apply bg-black/40 backdrop-blur-sm rounded-full p-2 flex justify-center items-center;
+  }
+}
+
+/* Improved mobile layout */
+@media (max-width: 768px) {
+  select.form-input {
+    /* Make sure selects have visible backgrounds on mobile */
+    background-color: rgba(var(--background), 0.9);
+  }
+  
+  .dropdown-menu {
+    /* Better dropdown positioning on mobile */
+    max-height: 80vh;
+    max-width: 90vw;
+  }
 }

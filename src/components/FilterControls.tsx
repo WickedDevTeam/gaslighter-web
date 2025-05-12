@@ -8,6 +8,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { LayoutGrid, Columns3, LayoutList } from 'lucide-react';
 import Spinner from '@/components/Spinner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface FilterControlsProps {
   targetSubreddit: string;
@@ -46,12 +47,9 @@ const FilterControls: React.FC<FilterControlsProps> = ({
   onSpeedChange,
   onSubmit
 }) => {
-  const {
-    toast
-  } = useToast();
-  const {
-    updateSettings
-  } = useSettings();
+  const { toast } = useToast();
+  const { updateSettings } = useSettings();
+  const isMobile = useIsMobile();
 
   // Update settings when controls change
   useEffect(() => {
@@ -88,46 +86,59 @@ const FilterControls: React.FC<FilterControlsProps> = ({
   };
 
   return <div className="p-4 rounded-lg">
-      {/* First row - inputs and sort controls */}
-      <div className="flex flex-col md:flex-row gap-4 mb-3">
-        {/* Left column - Inputs */}
-        <div className="flex-grow space-y-3 md:space-y-0 md:flex md:gap-3">
+      {/* First row - inputs */}
+      <div className="flex flex-col gap-4 mb-4">
+        {/* Inputs */}
+        <div className="flex flex-col md:flex-row gap-3">
           <SubredditInput id="targetSubreddit" label="Target Subreddit" value={targetSubreddit} onChange={onTargetChange} placeholder="e.g., news" className="md:w-1/2" />
           
           <SubredditInput id="sourceSubreddits" label="Source Subreddits (comma-separated)" value={sourceSubreddits} onChange={onSourceChange} placeholder="e.g., cats, dogpictures" isSourceField className="md:w-1/2" />
         </div>
         
-        {/* Sort Controls - Fixed the duplicate icons issue by removing any potential icon elements */}
-        <div className="flex gap-2 items-end">
-          <div>
-            <label htmlFor="sortModeSelect" className="form-label text-xs">Sort By:</label>
-            <select id="sortModeSelect" className="form-input select-filter-arrow h-9 text-sm" value={sortMode} onChange={e => onSortModeChange(e.target.value as SortMode)}>
-              <option value="hot">Hot</option>
-              <option value="new">New</option>
-              <option value="top">Top</option>
-            </select>
-          </div>
-          
-          {sortMode === 'top' && <div>
-              <label htmlFor="topTimeFilterSelect" className="form-label text-xs">Top From:</label>
-              <select id="topTimeFilterSelect" className="form-input select-filter-arrow h-9 text-sm" value={topTimeFilter} onChange={e => onTopTimeFilterChange(e.target.value as TopTimeFilter)}>
-                <option value="day">Today</option>
-                <option value="week">Week</option>
-                <option value="month">Month</option>
-                <option value="year">Year</option>
-                <option value="all">All Time</option>
+        {/* Sort Controls - Better mobile layout */}
+        <div className="flex flex-wrap gap-3 items-center justify-between">
+          <div className="flex flex-wrap gap-2 items-end">
+            <div>
+              <label htmlFor="sortModeSelect" className="form-label text-xs">Sort By:</label>
+              <select id="sortModeSelect" 
+                className="form-input select-filter-arrow h-9 text-sm" 
+                value={sortMode} 
+                onChange={e => onSortModeChange(e.target.value as SortMode)}
+                style={{ 
+                  backgroundImage: "url('data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-chevron-down\"%3E%3Cpolyline points=\"6 9 12 15 18 9\"%3E%3C/polyline%3E%3C/svg%3E')",
+                  backgroundSize: "14px"
+                }}
+              >
+                <option value="hot">Hot</option>
+                <option value="new">New</option>
+                <option value="top">Top</option>
               </select>
-            </div>}
-        </div>
-      </div>
-      
-      {/* Second row - View controls and Gaslight button */}
-      <div className="flex justify-between items-center">
-        {/* View As controls */}
-        <div>
-          <label className="form-label text-xs block mb-1">View As:</label>
-          <div className="flex justify-start">
-            <ToggleGroup type="single" value={viewMode} onValueChange={value => value && onViewModeChange(value as ViewMode)} className="flex gap-1">
+            </div>
+            
+            {sortMode === 'top' && <div>
+                <label htmlFor="topTimeFilterSelect" className="form-label text-xs">Top From:</label>
+                <select id="topTimeFilterSelect" 
+                  className="form-input select-filter-arrow h-9 text-sm" 
+                  value={topTimeFilter} 
+                  onChange={e => onTopTimeFilterChange(e.target.value as TopTimeFilter)}
+                  style={{ 
+                    backgroundImage: "url('data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-chevron-down\"%3E%3Cpolyline points=\"6 9 12 15 18 9\"%3E%3C/polyline%3E%3C/svg%3E')",
+                    backgroundSize: "14px"
+                  }}
+                >
+                  <option value="day">Today</option>
+                  <option value="week">Week</option>
+                  <option value="month">Month</option>
+                  <option value="year">Year</option>
+                  <option value="all">All Time</option>
+                </select>
+              </div>}
+          </div>
+
+          {/* View As controls */}
+          <div className="w-full sm:w-auto">
+            <label className="form-label text-xs block mb-1">View As:</label>
+            <ToggleGroup type="single" value={viewMode} onValueChange={value => value && onViewModeChange(value as ViewMode)} className="flex gap-1 justify-start">
               <ToggleGroupItem value="compact" aria-label="Compact View" className="h-9 px-2 text-xs">
                 <LayoutGrid className="h-3 w-3 mr-1" />
                 <span>Compact</span>
@@ -145,16 +156,21 @@ const FilterControls: React.FC<FilterControlsProps> = ({
             </ToggleGroup>
           </div>
         </div>
-        
-        {/* Updated Gaslight button with improved styling */}
-        <div>
-          <Button onClick={handleSubmit} disabled={isLoadingPosts} className="h-11 px-8 bg-[#533ed1] hover:bg-[#604ae5] shadow-md transition-all \\n            font-medium text-base rounded-md border border-[#7E69AB]">
-            {isLoadingPosts ? <>
-                <Spinner size="small" />
-                <span className="ml-2">Loading...</span>
-              </> : 'Gaslight!'}
-          </Button>
-        </div>
+      </div>
+      
+      {/* Gaslight button - Full width on mobile */}
+      <div className="mt-4">
+        <Button 
+          onClick={handleSubmit} 
+          disabled={isLoadingPosts} 
+          className="h-11 px-8 bg-[#533ed1] hover:bg-[#604ae5] shadow-md transition-all
+            font-medium text-base rounded-md border border-[#7E69AB] w-full sm:w-auto"
+        >
+          {isLoadingPosts ? <>
+              <Spinner size="small" />
+              <span className="ml-2">Loading...</span>
+            </> : 'Gaslight!'}
+        </Button>
       </div>
     </div>;
 };

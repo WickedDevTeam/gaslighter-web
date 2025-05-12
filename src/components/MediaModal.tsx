@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { PostData } from '@/types';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ChevronLeft, ChevronRight, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, ChevronUp, ChevronDown, Maximize2, ArrowDown, ArrowUp } from 'lucide-react';
 import { 
   Carousel,
   CarouselContent,
@@ -10,6 +10,7 @@ import {
   CarouselPrevious,
   CarouselNext
 } from "@/components/ui/carousel";
+import { cn } from '@/lib/utils';
 
 interface MediaModalProps {
   isOpen: boolean;
@@ -27,22 +28,41 @@ const MediaModal: React.FC<MediaModalProps> = ({
   onNavigate
 }) => {
   const [touchStartY, setTouchStartY] = useState(0);
+  const [showControls, setShowControls] = useState(true);
   const isMobile = useIsMobile();
+  
+  // Auto-hide controls on mobile after a few seconds
+  useEffect(() => {
+    if (isMobile) {
+      const timer = setTimeout(() => {
+        setShowControls(false);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, isMobile, currentIndex]);
   
   const handlePrev = () => {
     if (currentIndex > 0) {
       onNavigate(currentIndex - 1);
+      setShowControls(true);
     }
   };
 
   const handleNext = () => {
     if (currentIndex < posts.length - 1) {
       onNavigate(currentIndex + 1);
+      setShowControls(true);
     }
+  };
+
+  const toggleControls = () => {
+    setShowControls(prev => !prev);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStartY(e.touches[0].clientY);
+    setShowControls(true);
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -93,23 +113,36 @@ const MediaModal: React.FC<MediaModalProps> = ({
     return null;
   }
 
-  // Use different rendering approach based on mobile vs desktop
+  // Mobile-optimized view
   if (isMobile) {
     // Set initial slide to current index
     const initialSlide = currentIndex;
     
     return (
       <div 
-        className="modal-overlay fixed inset-0 bg-black/90 z-[1000] flex flex-col"
+        className="modal-overlay fixed inset-0 bg-black/95 z-[1000] flex flex-col"
         style={{ display: isOpen ? 'flex' : 'none' }}
+        onClick={toggleControls}
       >
-        <div className="absolute top-4 right-4 z-[1001]">
+        {/* Mobile header controls */}
+        <div 
+          className={cn(
+            "absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-[1001] transition-opacity duration-300 bg-gradient-to-b from-black/80 to-transparent",
+            showControls ? "opacity-100" : "opacity-0"
+          )}
+        >
+          <div className="text-white font-semibold truncate max-w-[80%]">
+            {posts[currentIndex].targetPostData.subreddit && (
+              <span className="text-purple-400">r/{posts[currentIndex].targetPostData.subreddit}</span>
+            )}
+          </div>
+          
           <button 
-            className="modal-close text-white flex items-center justify-center"
+            className="text-white flex items-center justify-center bg-black/40 backdrop-blur-sm p-2 rounded-full"
             onClick={onClose}
             aria-label="Close modal"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
         
@@ -124,7 +157,7 @@ const MediaModal: React.FC<MediaModalProps> = ({
         >
           <CarouselContent className="h-full flex-col">
             {posts.map((post, index) => (
-              <CarouselItem key={index} className="h-full flex justify-center items-center" style={{padding: 0}}>
+              <CarouselItem key={index} className="h-full flex justify-center items-center p-0">
                 <div 
                   className="flex flex-col justify-center items-center h-full w-full"
                   onTouchStart={handleTouchStart}
@@ -150,10 +183,6 @@ const MediaModal: React.FC<MediaModalProps> = ({
                         className="max-w-full max-h-full object-contain block"
                       />
                     )}
-                    
-                    <div className="absolute bottom-6 left-4 right-4 bg-black/80 backdrop-blur-sm text-white text-xl font-bold p-4 text-center leading-snug max-h-32 overflow-y-auto z-5 box-border rounded-lg">
-                      {post.targetPostData.title || "Untitled"}
-                    </div>
                   </div>
                 </div>
               </CarouselItem>
@@ -161,14 +190,40 @@ const MediaModal: React.FC<MediaModalProps> = ({
           </CarouselContent>
         </Carousel>
         
-        <div className="absolute left-0 right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
-          <div className="flex items-center justify-between px-6">
-            <div className="h-14 w-14 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-              <ChevronUp className="text-white/70" size={24} />
+        {/* Navigation indicators */}
+        <div 
+          className={cn(
+            "absolute left-4 right-4 top-1/2 transform -translate-y-1/2 flex items-center justify-between pointer-events-none transition-opacity duration-300",
+            showControls ? "opacity-80" : "opacity-0"
+          )}
+        >
+          <div className="h-12 w-12 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+            <ArrowUp className="text-white" size={24} />
+          </div>
+          <div className="h-12 w-12 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+            <ArrowDown className="text-white" size={24} />
+          </div>
+        </div>
+        
+        {/* Bottom title card */}
+        <div 
+          className={cn(
+            "absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-300",
+            showControls ? "opacity-100" : "opacity-0"
+          )}
+        >
+          <div className="text-white text-lg font-bold p-2 leading-tight">
+            {posts[currentIndex].targetPostData.title || "Untitled"}
+          </div>
+          <div className="flex justify-between items-center px-2">
+            <div className="text-gray-300 text-xs">
+              {currentIndex + 1} of {posts.length}
             </div>
-            <div className="h-14 w-14 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-              <ChevronDown className="text-white/70" size={24} />
-            </div>
+            {posts[currentIndex].targetPostData.author && (
+              <div className="text-gray-300 text-xs">
+                Posted by u/{posts[currentIndex].targetPostData.author}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -195,7 +250,7 @@ const MediaModal: React.FC<MediaModalProps> = ({
         </button>
         
         <button 
-          className="modal-nav-arrow prev absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 backdrop-blur-sm text-white cursor-pointer z-10 rounded-full"
+          className="modal-nav-arrow prev absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 backdrop-blur-sm text-white cursor-pointer z-10 rounded-full p-2"
           onClick={handlePrev}
           disabled={currentIndex === 0}
           aria-label="Previous"
@@ -229,7 +284,7 @@ const MediaModal: React.FC<MediaModalProps> = ({
         </div>
         
         <button 
-          className="modal-nav-arrow next absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 backdrop-blur-sm text-white cursor-pointer z-10 rounded-full"
+          className="modal-nav-arrow next absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 backdrop-blur-sm text-white cursor-pointer z-10 rounded-full p-2"
           onClick={handleNext}
           disabled={currentIndex === posts.length - 1}
           aria-label="Next"
