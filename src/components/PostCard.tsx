@@ -100,7 +100,7 @@ const PostCard: React.FC<PostCardProps> = ({
     return (
       <div className={cn(
         "gallery-item", 
-        viewMode === "compact" ? "compact-gallery-item" : ""
+        viewMode === "compact" ? "compact-gallery-item" : "large-gallery-item"
       )} 
       onClick={handlePostClick}>
         <div className="media-container relative">

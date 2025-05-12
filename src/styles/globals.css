@@ -235,6 +235,7 @@ video::-webkit-media-controls-panel { background-color: rgba(0,0,0,0.75); }
   font-weight: 500; 
   color: #A0A0A0; 
   margin-bottom: 0.25rem; 
+  display: block;
 }
 
 .select-filter-arrow { 
@@ -256,6 +257,7 @@ video::-webkit-media-controls-panel { background-color: rgba(0,0,0,0.75); }
   display: flex; 
   flex-direction: column;
   cursor: pointer; 
+  height: 100%;
 }
 
 .gallery-item:hover {
@@ -337,6 +339,16 @@ video::-webkit-media-controls-panel { background-color: rgba(0,0,0,0.75); }
   padding: 0.5rem;
 }
 
+/* Large view specific styles */
+.large-gallery-item {
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.large-gallery-item .media-container {
+  padding-top: 75%;
+}
+
 /* Gallery item shared styles */
 .gallery-item img, .gallery-item video {
   position: absolute;
@@ -375,6 +387,31 @@ video::-webkit-media-controls-panel { background-color: rgba(0,0,0,0.75); }
 
 .list-view-media-container:hover img, .list-view-media-container:hover video {
   transform: scale(1.03);
+}
+
+/* Enhanced toggle group styles */
+.toggle-group-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background-color: #1A1A1A;
+  border: 1px solid #333333;
+  color: #D1D5DB;
+}
+
+.toggle-group-item:hover {
+  background-color: #222222;
+}
+
+.toggle-group-item[data-state="on"] {
+  background-color: #333333;
+  color: #FFFFFF;
+  border-color: #555555;
 }
 
 /* Layout & Spacing */

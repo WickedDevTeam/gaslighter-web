@@ -236,11 +236,11 @@ const Index = () => {
       case 'compact':
         return 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3';
       case 'large':
-        return 'sm:grid-cols-2 lg:grid-cols-3 gap-4';
+        return 'sm:grid-cols-1 lg:grid-cols-2 gap-4'; // Changed from 3 columns to 2
       case 'extra-large':
         return 'grid-cols-1 max-w-3xl mx-auto gap-6';
       default:
-        return 'sm:grid-cols-2 lg:grid-cols-3 gap-4';
+        return 'sm:grid-cols-1 lg:grid-cols-2 gap-4'; // Changed default to match large
     }
   };
 
