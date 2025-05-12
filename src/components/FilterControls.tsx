@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import SubredditInput from '@/components/SubredditInput';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { LayoutGrid, Columns3, LayoutList } from 'lucide-react';
 import Spinner from '@/components/Spinner';
+
 interface FilterControlsProps {
   targetSubreddit: string;
   sourceSubreddits: string;
@@ -25,6 +27,7 @@ interface FilterControlsProps {
   onSpeedChange: (speed: number) => void;
   onSubmit: () => void;
 }
+
 const FilterControls: React.FC<FilterControlsProps> = ({
   targetSubreddit,
   sourceSubreddits,
@@ -62,6 +65,7 @@ const FilterControls: React.FC<FilterControlsProps> = ({
       autoscrollSpeed
     });
   }, [targetSubreddit, sourceSubreddits, viewMode, sortMode, topTimeFilter, isAutoscrollEnabled, autoscrollSpeed, updateSettings]);
+
   const handleSubmit = () => {
     // Validate fields
     if (!targetSubreddit.trim()) {
@@ -82,6 +86,7 @@ const FilterControls: React.FC<FilterControlsProps> = ({
     }
     onSubmit();
   };
+
   return <div className="p-4 rounded-lg">
       {/* First row - inputs and sort controls */}
       <div className="flex flex-col md:flex-row gap-4 mb-3">
@@ -92,7 +97,7 @@ const FilterControls: React.FC<FilterControlsProps> = ({
           <SubredditInput id="sourceSubreddits" label="Source Subreddits (comma-separated)" value={sourceSubreddits} onChange={onSourceChange} placeholder="e.g., cats, dogpictures" isSourceField className="md:w-1/2" />
         </div>
         
-        {/* Sort Controls */}
+        {/* Sort Controls - Fixed the duplicate icons issue by removing any potential icon elements */}
         <div className="flex gap-2 items-end">
           <div>
             <label htmlFor="sortModeSelect" className="form-label text-xs">Sort By:</label>
@@ -153,4 +158,5 @@ const FilterControls: React.FC<FilterControlsProps> = ({
       </div>
     </div>;
 };
+
 export default FilterControls;
