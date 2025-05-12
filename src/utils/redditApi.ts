@@ -166,45 +166,55 @@ export function extractMediaUrls(posts: RedditPost[]): MediaInfo[] {
 
       // 1. Handle Reddit Galleries (is_gallery: true)
       if (pData.is_gallery && pData.media_metadata) {
-        const galleryImageIds = Object.keys(pData.media_metadata);
-        if (galleryImageIds.length > 0) {
-          const firstImageId = galleryImageIds[0];
-          const meta = pData.media_metadata[firstImageId];
-          
-          // Try to get the direct image URL (s.u)
-          if (meta && meta.s && meta.s.u) { 
-            media.push({ 
-              type: 'image', 
-              url: meta.s.u.replace(/&amp;/g, '&'), 
-              originalPost: pData 
-            });
-            return; // Move to next post after successful extraction
-          } 
-          // Fallback to processed preview images (p)
-          else if (meta && meta.p && meta.p.length > 0) { 
-            // Sort previews by width (largest first) and take the URL of the largest
-            const largestPreview = meta.p.sort((a, b) => b.x - a.x)[0]; 
-            if (largestPreview && largestPreview.u) {
-              media.push({ 
-                type: 'image', 
-                url: largestPreview.u.replace(/&amp;/g, '&'), 
-                originalPost: pData 
-              });
-              return; // Move to next post after successful extraction
+        try {
+          const galleryImageIds = Object.keys(pData.media_metadata);
+          if (galleryImageIds.length > 0) {
+            // Try each image in the gallery until we find a valid one
+            for (const imageId of galleryImageIds) {
+              const meta = pData.media_metadata[imageId];
+              
+              // Try to get the direct image URL (s.u)
+              if (meta && meta.s && meta.s.u) { 
+                media.push({ 
+                  type: 'image', 
+                  url: meta.s.u.replace(/&amp;/g, '&'), 
+                  originalPost: pData 
+                });
+                return; // Move to next post after successful extraction
+              } 
+              // Fallback to processed preview images (p)
+              else if (meta && meta.p && meta.p.length > 0) { 
+                // Sort previews by width (largest first) and take the URL of the largest
+                const largestPreview = meta.p.sort((a: any, b: any) => b.x - a.x)[0]; 
+                if (largestPreview && largestPreview.u) {
+                  media.push({ 
+                    type: 'image', 
+                    url: largestPreview.u.replace(/&amp;/g, '&'), 
+                    originalPost: pData 
+                  });
+                  return; // Move to next post after successful extraction
+                }
+              }
             }
           }
+        } catch (galleryError) {
+          console.log('Error processing gallery:', galleryError);
+          // Continue to other media extraction methods if gallery fails
         }
       }
+      
       // 2. Handle Reddit-hosted videos
-      else if (pData.is_video && pData.media?.reddit_video?.fallback_url) {
+      if (pData.is_video && pData.media?.reddit_video?.fallback_url) {
         media.push({ 
           type: 'video', 
           url: pData.media.reddit_video.fallback_url.split('?')[0], 
           originalPost: pData 
         });
+        return; // Move to next post
       } 
+      
       // 3. Handle direct image links (jpg, jpeg, png, gif)
-      else if (
+      if (
         pData.url_overridden_by_dest && 
         /\.(jpg|jpeg|png|gif)$/i.test(pData.url_overridden_by_dest) && 
         (pData.post_hint === 'image' || pData.domain === 'i.redd.it' || pData.domain === 'i.imgur.com')
@@ -214,9 +224,11 @@ export function extractMediaUrls(posts: RedditPost[]): MediaInfo[] {
           url: pData.url_overridden_by_dest, 
           originalPost: pData 
         });
+        return; // Move to next post
       } 
+      
       // 4. Handle Imgur .gifv links (convert to .mp4)
-      else if (
+      if (
         pData.url_overridden_by_dest?.endsWith('.gifv') && 
         pData.domain === 'i.imgur.com'
       ) {
@@ -225,6 +237,40 @@ export function extractMediaUrls(posts: RedditPost[]): MediaInfo[] {
           url: pData.url_overridden_by_dest.replace(/\.gifv$/i, '.mp4'), 
           originalPost: pData 
         });
+        return; // Move to next post
+      }
+      
+      // 5. Additional check for image posts with previews
+      if (pData.preview && pData.preview.images && pData.preview.images.length > 0) {
+        try {
+          const image = pData.preview.images[0];
+          // Try source first (highest quality)
+          if (image.source && image.source.url) {
+            media.push({
+              type: 'image',
+              url: image.source.url.replace(/&amp;/g, '&'),
+              originalPost: pData
+            });
+            return; // Move to next post
+          }
+          
+          // Try resolutions
+          if (image.resolutions && image.resolutions.length > 0) {
+            // Get the highest resolution
+            const highestRes = image.resolutions.sort((a: any, b: any) => b.width - a.width)[0];
+            if (highestRes && highestRes.url) {
+              media.push({
+                type: 'image',
+                url: highestRes.url.replace(/&amp;/g, '&'),
+                originalPost: pData
+              });
+              return; // Move to next post
+            }
+          }
+        } catch (previewError) {
+          console.log('Error processing preview:', previewError);
+          // Continue to next post
+        }
       }
     } catch (error) {
       console.error('Error processing post:', error);
@@ -232,5 +278,6 @@ export function extractMediaUrls(posts: RedditPost[]): MediaInfo[] {
     }
   });
   
+  console.log(`[extractMediaUrls] Extracted ${media.length} media items from ${posts.length} posts`);
   return media;
 }

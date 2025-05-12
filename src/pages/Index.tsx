@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import SubredditInput from '@/components/SubredditInput';
 import MessageArea from '@/components/MessageArea';
@@ -11,9 +12,13 @@ import { PostData, ViewMode, SortMode, TopTimeFilter, MediaInfo } from '@/types'
 import { useSettings } from '@/hooks/useSettings';
 import { useAutoscroll } from '@/hooks/useAutoscroll';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Index = () => {
   const { settings, isLoaded } = useSettings();
+  const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   // Main inputs state - initialize from settings when loaded
   const [targetSubreddit, setTargetSubreddit] = useState('');
@@ -136,11 +141,18 @@ const Index = () => {
     
     targetPosts.forEach(post => {
       const pData = post.data;
-      const isTrulyMediaPost = pData.post_hint === 'image' || pData.post_hint === 'hosted:video' || 
-        pData.post_hint === 'rich:video' || pData.is_video || pData.is_gallery || 
-        (pData.preview && pData.preview.images && pData.preview.images.length > 0 && 
-        pData.domain !== 'self.' + pData.subreddit.toLowerCase() && 
-        !pData.url.includes('/comments/'));
+      if (!pData) return;
+      
+      // More lenient media post detection
+      const isTrulyMediaPost = 
+        pData.post_hint === 'image' || 
+        pData.post_hint === 'hosted:video' || 
+        pData.post_hint === 'rich:video' || 
+        pData.is_video || 
+        pData.is_gallery || 
+        (pData.preview && pData.preview.images && pData.preview.images.length > 0) ||
+        (pData.url_overridden_by_dest && /\.(jpg|jpeg|png|gif)$/i.test(pData.url_overridden_by_dest)) ||
+        (pData.url_overridden_by_dest && pData.url_overridden_by_dest.includes('imgur.com'));
         
       if (isTrulyMediaPost) {
         // Only try to pick a random media if we have source media available
@@ -237,19 +249,46 @@ const Index = () => {
       
       // Create a local variable to store media before setting state
       let collectedMedia: MediaInfo[] = [];
+      let hasSuccessfulFetch = false;
       
-      const srcPromises = sourceSubs.map(name => fetchRedditData(name, 'hot', null, 75)
-        .then(d => {
-          console.log(`[fetchInitialData] Received ${d.posts?.length || 0} posts from r/${name}`);
-          return extractMediaUrls(d.posts);
-        })
-        .catch(err => {
-          console.error(`[fetchInitialData] Error fetching r/${name}:`, err);
+      const fetchPromises = sourceSubs.map(async (name) => {
+        try {
+          // For each subreddit, try multiple sort modes if one fails
+          const sortOptions = ['hot', 'new', 'top'];
+          let mediaFromSub: MediaInfo[] = [];
+          
+          for (const sortOption of sortOptions) {
+            if (mediaFromSub.length > 0) break; // Stop if we already have media
+            
+            try {
+              const timeFilter = sortOption === 'top' ? 'month' : null;
+              const data = await fetchRedditData(name, sortOption, timeFilter, 75);
+              if (data.posts && data.posts.length > 0) {
+                const extractedMedia = extractMediaUrls(data.posts);
+                if (extractedMedia.length > 0) {
+                  mediaFromSub = extractedMedia;
+                  hasSuccessfulFetch = true;
+                  console.log(`[fetchInitialData] Fetched ${extractedMedia.length} media items from r/${name} using ${sortOption}`);
+                  break;
+                }
+              }
+            } catch (sortError) {
+              console.log(`Error fetching r/${name} with ${sortOption}:`, sortError);
+              // Continue to next sort option
+            }
+          }
+          
+          return mediaFromSub;
+        } catch (subError) {
+          console.error(`[fetchInitialData] Failed to fetch from r/${name}:`, subError);
           return [];
-        }));
+        }
+      });
       
-      const srcResults = await Promise.all(srcPromises);
-      srcResults.forEach(urls => collectedMedia.push(...urls));
+      const results = await Promise.all(fetchPromises);
+      results.forEach(mediaItems => {
+        collectedMedia.push(...mediaItems);
+      });
       
       // Remove duplicates
       collectedMedia = Array.from(new Map(collectedMedia.map(item => [item.url, item])).values());
@@ -257,7 +296,11 @@ const Index = () => {
       
       // Check if we have source media before proceeding
       if (collectedMedia.length === 0) {
-        displayMessage("No media found in source subreddits. Try different sources.", 'error');
+        if (hasSuccessfulFetch) {
+          displayMessage("No media content found in the source subreddits. Try different sources.", 'error');
+        } else {
+          displayMessage("Failed to load source subreddits. Check your internet connection and try again.", 'error');
+        }
         setIsLoadingPosts(false);
         setIsLoadingInitialSources(false);
         setIsProcessingData(false);
@@ -271,9 +314,28 @@ const Index = () => {
 
       // STEP 2: Now fetch target posts
       console.log(`[fetchInitialData] Fetching target posts from r/${targetSub}`);
-      const targetData = await fetchRedditData(targetSub, sortMode, topTimeFilter, 25, null);
       
-      if (!targetData.posts || targetData.posts.length === 0) {
+      // Try multiple sort modes for target if needed
+      const targetSortOptions = [sortMode, 'hot', 'new', 'top'];
+      let targetData;
+      let usedSortMode = sortMode;
+      
+      for (const targetSortOption of targetSortOptions) {
+        try {
+          const timeFilter = targetSortOption === 'top' ? topTimeFilter : null;
+          const data = await fetchRedditData(targetSub, targetSortOption, timeFilter, 25, null);
+          if (data.posts && data.posts.length > 0) {
+            targetData = data;
+            usedSortMode = targetSortOption as SortMode;
+            break;
+          }
+        } catch (err) {
+          console.log(`Error with ${targetSortOption} for r/${targetSub}:`, err);
+          // Try next sort option
+        }
+      }
+
+      if (!targetData || !targetData.posts || targetData.posts.length === 0) {
         displayMessage(`No posts found in r/${targetSub} for selected filters.`, 'error');
         setIsLoadingPosts(false);
         setIsLoadingInitialSources(false);
@@ -283,22 +345,38 @@ const Index = () => {
       
       console.log(`[fetchInitialData] Received ${targetData.posts.length} target posts`);
       
+      // If we used a different sort than requested, inform the user
+      if (usedSortMode !== sortMode) {
+        setSortMode(usedSortMode);
+        toast({
+          title: `Using "${usedSortMode}" sorting`,
+          description: `"${sortMode}" returned no posts for r/${targetSub}`,
+          duration: 3000
+        });
+      }
+      
       // Store the after token regardless
       setTargetAfter(targetData.after);
       
       // Now that we have source media, directly append the posts to the feed
-      // Use the locally collected media reference to ensure we have the latest data
       const targetPosts = targetData.posts;
       let postsAdded = 0;
       let newDisplayPosts: PostData[] = [];
       
       targetPosts.forEach(post => {
         const pData = post.data;
-        const isTrulyMediaPost = pData.post_hint === 'image' || pData.post_hint === 'hosted:video' || 
-          pData.post_hint === 'rich:video' || pData.is_video || pData.is_gallery || 
-          (pData.preview && pData.preview.images && pData.preview.images.length > 0 && 
-          pData.domain !== 'self.' + pData.subreddit.toLowerCase() && 
-          !pData.url.includes('/comments/'));
+        if (!pData) return;
+        
+        // More lenient media post detection
+        const isTrulyMediaPost = 
+          pData.post_hint === 'image' || 
+          pData.post_hint === 'hosted:video' || 
+          pData.post_hint === 'rich:video' || 
+          pData.is_video || 
+          pData.is_gallery || 
+          (pData.preview && pData.preview.images && pData.preview.images.length > 0) ||
+          (pData.url_overridden_by_dest && /\.(jpg|jpeg|png|gif)$/i.test(pData.url_overridden_by_dest)) ||
+          (pData.url_overridden_by_dest && pData.url_overridden_by_dest.includes('imgur.com'));
         
         if (isTrulyMediaPost) {
           // Use the local media array which we know is populated
@@ -348,7 +426,7 @@ const Index = () => {
       setIsProcessingData(false);
       console.log('[fetchInitialData] Fetch operation completed');
     }
-  }, [targetSubreddit, sourceSubreddits, sortMode, topTimeFilter, clearMessage, displayMessage]);
+  }, [targetSubreddit, sourceSubreddits, sortMode, topTimeFilter, clearMessage, displayMessage, toast]);
   
   const loadMoreTargetPosts = useCallback(async () => {
     if (isLoadingMore || noMoreTargetPosts || !currentTargetSubredditName || !targetAfter || !isSourceMediaReady) return;
@@ -388,7 +466,11 @@ const Index = () => {
     // When autoscrolling is on, we'll load more content automatically as we reach the bottom
     if (!isAutoscrollEnabled) {
       const handleScroll = () => {
-        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 700) {
+        const scrollPosition = window.scrollY + window.innerHeight;
+        const documentHeight = document.documentElement.scrollHeight;
+        const threshold = documentHeight * 0.8; // Load more when 80% scrolled
+        
+        if (scrollPosition >= threshold) {
           loadMoreTargetPosts();
         }
       };
@@ -402,7 +484,11 @@ const Index = () => {
     // When autoscrolling is on, check if we need to load more content when near the bottom
     if (isAutoscrollEnabled) {
       const checkScrollPosition = () => {
-        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000) {
+        const scrollPosition = window.scrollY + window.innerHeight;
+        const documentHeight = document.documentElement.scrollHeight;
+        const threshold = documentHeight * 0.8; // Load more when 80% scrolled
+        
+        if (scrollPosition >= threshold) {
           loadMoreTargetPosts();
         }
       };
@@ -416,13 +502,13 @@ const Index = () => {
   const getGridClasses = () => {
     switch(viewMode) {
       case 'compact':
-        return 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3';
+        return isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3';
       case 'large':
-        return 'sm:grid-cols-1 lg:grid-cols-2 gap-4';
+        return isMobile ? 'grid-cols-1 gap-3' : 'sm:grid-cols-1 lg:grid-cols-2 gap-4';
       case 'extra-large':
         return 'grid-cols-1 max-w-3xl mx-auto gap-6';
       default:
-        return 'sm:grid-cols-1 lg:grid-cols-2 gap-4';
+        return isMobile ? 'grid-cols-1 gap-3' : 'sm:grid-cols-1 lg:grid-cols-2 gap-4';
     }
   };
 
