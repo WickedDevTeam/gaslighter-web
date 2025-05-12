@@ -228,10 +228,6 @@ const Index = () => {
     };
   }, [loadMoreTargetPosts]);
 
-  const handleSubmit = useCallback(() => {
-    fetchInitialData();
-  }, [fetchInitialData]);
-
   return (
     <div className="app-bg app-text">
       <div className="main-container container mx-auto min-h-screen flex flex-col">
@@ -239,7 +235,7 @@ const Index = () => {
           <h1 className="font-bold">Gaslighter</h1>
         </header>
 
-        <section className="controls-section control-panel-bg shadow-md sticky top-2 z-50 rounded-lg overflow-hidden">
+        <section className="controls-section control-panel-bg shadow-md sticky top-2 z-50 rounded-lg">
           <FilterControls
             targetSubreddit={targetSubreddit}
             sourceSubreddits={sourceSubreddits}
@@ -252,7 +248,7 @@ const Index = () => {
             onViewModeChange={setViewMode}
             onSortModeChange={setSortMode}
             onTopTimeFilterChange={setTopTimeFilter}
-            onSubmit={handleSubmit}
+            onSubmit={fetchInitialData}
           />
           
           <MessageArea message={message} type={messageType} />
