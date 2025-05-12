@@ -8,6 +8,8 @@ import { useSettings } from '@/hooks/useSettings';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { LayoutGrid, Columns3, LayoutList } from 'lucide-react';
 import Spinner from '@/components/Spinner';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
 
 interface FilterControlsProps {
   targetSubreddit: string;
@@ -16,11 +18,15 @@ interface FilterControlsProps {
   sortMode: SortMode;
   topTimeFilter: TopTimeFilter;
   isLoadingPosts: boolean;
+  isAutoscrollEnabled: boolean;
+  autoscrollSpeed: number;
   onTargetChange: (value: string) => void;
   onSourceChange: (value: string) => void;
   onViewModeChange: (mode: ViewMode) => void;
   onSortModeChange: (mode: SortMode) => void;
   onTopTimeFilterChange: (filter: TopTimeFilter) => void;
+  onAutoscrollToggle: (enabled: boolean) => void;
+  onSpeedChange: (speed: number) => void;
   onSubmit: () => void;
 }
 
@@ -31,11 +37,15 @@ const FilterControls: React.FC<FilterControlsProps> = ({
   sortMode,
   topTimeFilter,
   isLoadingPosts,
+  isAutoscrollEnabled,
+  autoscrollSpeed,
   onTargetChange,
   onSourceChange,
   onViewModeChange,
   onSortModeChange,
   onTopTimeFilterChange,
+  onAutoscrollToggle,
+  onSpeedChange,
   onSubmit,
 }) => {
   const { toast } = useToast();
@@ -48,9 +58,11 @@ const FilterControls: React.FC<FilterControlsProps> = ({
       sourceSubreddits,
       viewMode,
       sortMode,
-      topTimeFilter
+      topTimeFilter,
+      isAutoscrollEnabled,
+      autoscrollSpeed
     });
-  }, [targetSubreddit, sourceSubreddits, viewMode, sortMode, topTimeFilter, updateSettings]);
+  }, [targetSubreddit, sourceSubreddits, viewMode, sortMode, topTimeFilter, isAutoscrollEnabled, autoscrollSpeed, updateSettings]);
 
   const handleSubmit = () => {
     // Validate fields
@@ -181,6 +193,40 @@ const FilterControls: React.FC<FilterControlsProps> = ({
               </>
             ) : 'Gaslight!'}
           </Button>
+        </div>
+      </div>
+
+      {/* Third row - Autoscroll controls */}
+      <div className="mt-3 pt-3 border-t">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Switch 
+              checked={isAutoscrollEnabled} 
+              onCheckedChange={onAutoscrollToggle} 
+              id="autoscroll-toggle" 
+            />
+            <label 
+              htmlFor="autoscroll-toggle" 
+              className="text-sm font-medium cursor-pointer"
+            >
+              Autoscroll
+            </label>
+          </div>
+          
+          {isAutoscrollEnabled && (
+            <div className="flex items-center space-x-3 flex-1 max-w-xs ml-6">
+              <span className="text-xs">Slow</span>
+              <Slider
+                value={[autoscrollSpeed]}
+                min={1}
+                max={10}
+                step={1}
+                onValueChange={(value) => onSpeedChange(value[0])}
+                className="flex-1"
+              />
+              <span className="text-xs">Fast</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

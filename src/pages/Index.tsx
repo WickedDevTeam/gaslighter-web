@@ -9,6 +9,7 @@ import FilterControls from '@/components/FilterControls';
 import { fetchRedditData, extractMediaUrls } from '@/utils/redditApi';
 import { PostData, ViewMode, SortMode, TopTimeFilter, MediaInfo } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
+import { useAutoscroll } from '@/hooks/useAutoscroll';
 import { cn } from '@/lib/utils';
 
 const Index = () => {
@@ -20,6 +21,8 @@ const Index = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('large');
   const [sortMode, setSortMode] = useState<SortMode>('hot');
   const [topTimeFilter, setTopTimeFilter] = useState<TopTimeFilter>('day');
+  const [isAutoscrollEnabled, setIsAutoscrollEnabled] = useState(false);
+  const [autoscrollSpeed, setAutoscrollSpeed] = useState(3);
 
   // Apply stored settings on load
   useEffect(() => {
@@ -29,6 +32,8 @@ const Index = () => {
       setViewMode(settings.viewMode);
       setSortMode(settings.sortMode);
       setTopTimeFilter(settings.topTimeFilter);
+      setIsAutoscrollEnabled(settings.isAutoscrollEnabled);
+      setAutoscrollSpeed(settings.autoscrollSpeed);
     }
   }, [isLoaded, settings]);
 
@@ -59,6 +64,13 @@ const Index = () => {
 
   // Processing state to track if we're in the middle of preparing data
   const [isProcessingData, setIsProcessingData] = useState(false);
+
+  // Setup autoscroll
+  const { isPaused } = useAutoscroll({
+    isEnabled: isAutoscrollEnabled,
+    speed: autoscrollSpeed,
+    scrollContainer: feedContainerRef.current
+  });
 
   const displayMessage = useCallback((text: string, type: 'error' | 'info' = 'error') => {
     setMessage(text);
@@ -368,16 +380,33 @@ const Index = () => {
 
   // Set up scroll listener for infinite loading
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 700) {
-        loadMoreTargetPosts();
-      }
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [loadMoreTargetPosts]);
+    // Only setup auto-loading when autoscroll is not enabled
+    // When autoscrolling is on, we'll load more content automatically as we reach the bottom
+    if (!isAutoscrollEnabled) {
+      const handleScroll = () => {
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 700) {
+          loadMoreTargetPosts();
+        }
+      };
+      
+      window.addEventListener('scroll', handleScroll);
+      return () => {
+        window.removeEventListener('scroll', handleScroll);
+      };
+    }
+    
+    // When autoscrolling is on, check if we need to load more content when near the bottom
+    if (isAutoscrollEnabled) {
+      const checkScrollPosition = () => {
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000) {
+          loadMoreTargetPosts();
+        }
+      };
+      
+      const intervalId = setInterval(checkScrollPosition, 1000);
+      return () => clearInterval(intervalId);
+    }
+  }, [loadMoreTargetPosts, isAutoscrollEnabled]);
 
   // Get the appropriate grid class for the current view mode
   const getGridClasses = () => {
@@ -391,6 +420,14 @@ const Index = () => {
       default:
         return 'sm:grid-cols-1 lg:grid-cols-2 gap-4';
     }
+  };
+
+  const handleAutoscrollToggle = (enabled: boolean) => {
+    setIsAutoscrollEnabled(enabled);
+  };
+
+  const handleSpeedChange = (speed: number) => {
+    setAutoscrollSpeed(speed);
   };
 
   return (
@@ -407,12 +444,16 @@ const Index = () => {
             viewMode={viewMode}
             sortMode={sortMode}
             topTimeFilter={topTimeFilter}
+            isAutoscrollEnabled={isAutoscrollEnabled}
+            autoscrollSpeed={autoscrollSpeed}
             isLoadingPosts={isLoadingPosts || isProcessingData}
             onTargetChange={setTargetSubreddit}
             onSourceChange={setSourceSubreddits}
             onViewModeChange={setViewMode}
             onSortModeChange={setSortMode}
             onTopTimeFilterChange={setTopTimeFilter}
+            onAutoscrollToggle={handleAutoscrollToggle}
+            onSpeedChange={handleSpeedChange}
             onSubmit={fetchInitialData}
           />
           
@@ -420,6 +461,12 @@ const Index = () => {
         </section>
 
         <main className="feed-main-content flex-grow" ref={feedContainerRef}>
+          {isAutoscrollEnabled && (
+            <div className="fixed bottom-4 right-4 bg-black bg-opacity-70 text-white text-xs px-3 py-1 rounded-full z-10">
+              {isPaused ? "Autoscroll paused" : "Autoscrolling..."}
+            </div>
+          )}
+
           {isLoadingPosts && (
             <div className="text-center py-6">
               <div className="mx-auto mb-2">

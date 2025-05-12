@@ -7,6 +7,8 @@ export interface UserSettings {
   viewMode: ViewMode;
   sortMode: SortMode;
   topTimeFilter: TopTimeFilter;
+  isAutoscrollEnabled: boolean;
+  autoscrollSpeed: number;
 }
 
 const SETTINGS_KEY = 'gaslighter_user_settings';
@@ -17,6 +19,8 @@ export const defaultSettings: UserSettings = {
   viewMode: 'large',
   sortMode: 'hot',
   topTimeFilter: 'day',
+  isAutoscrollEnabled: false,
+  autoscrollSpeed: 3,
 };
 
 export const saveSettings = (settings: UserSettings): void => {
