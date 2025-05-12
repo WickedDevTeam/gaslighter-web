@@ -4,8 +4,10 @@ import MessageArea from '@/components/MessageArea';
 import PostCard from '@/components/PostCard';
 import MediaModal from '@/components/MediaModal';
 import Spinner from '@/components/Spinner';
+import FilterControls from '@/components/FilterControls';
 import { fetchRedditData, extractMediaUrls } from '@/utils/redditApi';
 import { PostData, ViewMode, SortMode, TopTimeFilter, MediaInfo } from '@/types';
+
 const Index = () => {
   // Main inputs state
   const [targetSubreddit, setTargetSubreddit] = useState('');
@@ -38,6 +40,7 @@ const Index = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [currentModalIndex, setCurrentModalIndex] = useState(-1);
   const feedContainerRef = useRef<HTMLDivElement>(null);
+
   const displayMessage = useCallback((text: string, type: 'error' | 'info' = 'error') => {
     setMessage(text);
     setMessageType(type);
@@ -212,86 +215,74 @@ const Index = () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, [loadMoreTargetPosts]);
-  return <div className="app-bg app-text">
+
+  return (
+    <div className="app-bg app-text">
       <div className="main-container container mx-auto min-h-screen flex flex-col">
         <header className="page-header text-center">
           <h1 className="font-bold">Gaslighter</h1>
-          
         </header>
 
-        <section className="controls-section control-panel-bg shadow-md sticky top-2 z-50">
-          <div className="controls-grid grid md:grid-cols-3 items-stretch">
-            <SubredditInput id="targetSubreddit" label="Target Subreddit" value={targetSubreddit} onChange={setTargetSubreddit} placeholder="e.g., news" />
-            
-            <SubredditInput id="sourceSubreddits" label="Source Subreddits (comma-separated)" value={sourceSubreddits} onChange={setSourceSubreddits} placeholder="e.g., cats, dogpictures" isSourceField />
-            
-            <div className="flex items-end">
-              <button className={`primary-button w-full focus:outline-none ${isLoadingPosts ? 'opacity-50 cursor-not-allowed' : ''}`} onClick={fetchInitialData} disabled={isLoadingPosts}>
-                Gaslight!
-              </button>
-            </div>
-          </div>
-          
-          <div className="controls-sub-grid border-t grid grid-cols-1 md:grid-cols-3 items-stretch">
-            <div>
-              <label className="form-label">View As:</label>
-              <div className="flex space-x-1.5">
-                <button className={`secondary-button ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>
-                  List
-                </button>
-                <button className={`secondary-button ${viewMode === 'gallery' ? 'active' : ''}`} onClick={() => setViewMode('gallery')}>
-                  Gallery
-                </button>
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="sortModeSelect" className="form-label">Sort By:</label>
-              <select id="sortModeSelect" className="form-input select-filter-arrow w-full" value={sortMode} onChange={e => setSortMode(e.target.value as SortMode)}>
-                <option value="hot">Hot</option>
-                <option value="new">New</option>
-                <option value="top">Top</option>
-              </select>
-            </div>
-            
-            {sortMode === 'top' && <div>
-                <label htmlFor="topTimeFilterSelect" className="form-label">Top From:</label>
-                <select id="topTimeFilterSelect" className="form-input select-filter-arrow w-full" value={topTimeFilter} onChange={e => setTopTimeFilter(e.target.value as TopTimeFilter)}>
-                  <option value="day">Today</option>
-                  <option value="week">This Week</option>
-                  <option value="month">This Month</option>
-                  <option value="year">This Year</option>
-                  <option value="all">All Time</option>
-                </select>
-              </div>}
-          </div>
+        <section className="controls-section control-panel-bg shadow-md sticky top-2 z-50 rounded-lg">
+          <FilterControls
+            targetSubreddit={targetSubreddit}
+            sourceSubreddits={sourceSubreddits}
+            viewMode={viewMode}
+            sortMode={sortMode}
+            topTimeFilter={topTimeFilter}
+            isLoadingPosts={isLoadingPosts}
+            onTargetChange={setTargetSubreddit}
+            onSourceChange={setSourceSubreddits}
+            onViewModeChange={setViewMode}
+            onSortModeChange={setSortMode}
+            onTopTimeFilterChange={setTopTimeFilter}
+            onSubmit={fetchInitialData}
+          />
           
           <MessageArea message={message} type={messageType} />
         </section>
 
         <main className="feed-main-content flex-grow" ref={feedContainerRef}>
-          {isLoadingPosts && <div className="text-center py-6">
+          {isLoadingPosts && (
+            <div className="text-center py-6">
               <div className="mx-auto mb-2">
                 <Spinner />
               </div>
               <p className="text-sm text-gray-400">Mixing realities...</p>
-            </div>}
+            </div>
+          )}
           
           <div className={`grid grid-cols-1 ${viewMode === 'list' ? 'feed-list-gap max-w-xl mx-auto' : 'sm:grid-cols-2 feed-gallery-gap'}`}>
-            {displayedPosts.map((post, index) => <PostCard key={`post-${index}`} postData={post} viewMode={viewMode} index={index} onPostClick={openModal} />)}
+            {displayedPosts.map((post, index) => (
+              <PostCard 
+                key={`post-${index}`} 
+                postData={post} 
+                viewMode={viewMode} 
+                index={index} 
+                onPostClick={openModal} 
+              />
+            ))}
           </div>
           
-          {isLoadingMore && <div className="text-center py-4">
+          {isLoadingMore && (
+            <div className="text-center py-4">
               <div className="mx-auto">
                 <Spinner size="small" />
               </div>
-            </div>}
+            </div>
+          )}
         </main>
-
-        
       </div>
 
-      <MediaModal isOpen={modalOpen} onClose={closeModal} posts={displayedPosts} currentIndex={currentModalIndex} onNavigate={navigateModal} />
-    </div>;
+      <MediaModal 
+        isOpen={modalOpen} 
+        onClose={closeModal} 
+        posts={displayedPosts} 
+        currentIndex={currentModalIndex} 
+        onNavigate={navigateModal} 
+      />
+    </div>
+  );
 };
+
 export default Index;
