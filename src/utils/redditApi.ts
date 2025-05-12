@@ -1,8 +1,9 @@
 
 import { MediaInfo, RedditPost, RedditResponse } from '@/types';
+import { toast } from '@/hooks/use-toast';
 
 /**
- * Fetches data from Reddit API
+ * Fetches data from Reddit API with retry mechanism
  */
 export async function fetchRedditData(
   subreddit: string,
@@ -11,28 +12,83 @@ export async function fetchRedditData(
   limit: number = 25,
   afterToken: string | null = null
 ): Promise<RedditResponse> {
-  let url = `https://www.reddit.com/r/${subreddit}/${sort}.json?limit=${limit}&raw_json=1`;
-  if (sort === 'top' && timeFilter) url += `&t=${timeFilter}`;
-  if (afterToken) url += `&after=${afterToken}`;
+  const maxRetries = 2;
+  let retries = 0;
+  let lastError: Error | null = null;
 
-  const response = await fetch(url, { cache: 'no-store' });
+  while (retries <= maxRetries) {
+    try {
+      let url = `https://www.reddit.com/r/${subreddit}/${sort}.json?limit=${limit}&raw_json=1`;
+      if (sort === 'top' && timeFilter) url += `&t=${timeFilter}`;
+      if (afterToken) url += `&after=${afterToken}`;
+
+      // Add a random parameter to avoid Reddit's caching
+      url += `&_=${Date.now()}`;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch(url, { 
+        cache: 'no-store',
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'web:gaslighter:v1.0'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        if (response.status === 404) throw new Error(`Subreddit r/${subreddit} not found.`);
+        if (response.status === 403) throw new Error(`Subreddit r/${subreddit} is private/quarantined.`);
+        if (response.status === 429) {
+          // Rate limited - wait longer between retries
+          await new Promise(resolve => setTimeout(resolve, 2000 * (retries + 1)));
+          throw new Error(`Too many requests. Retrying...`);
+        }
+        throw new Error(`Failed to fetch r/${subreddit}: ${response.status}`);
+      }
+
+      const jsonData = await response.json();
+      if (!jsonData.data || !jsonData.data.children) {
+        throw new Error(`Invalid data from r/${subreddit}.`);
+      }
+
+      return { 
+        posts: jsonData.data.children,
+        after: jsonData.data.after 
+      };
+    } catch (error: any) {
+      lastError = error;
+      
+      // If it's an AbortError (timeout), log and retry
+      if (error.name === 'AbortError') {
+        console.log(`Request timeout for r/${subreddit}, retry ${retries + 1}/${maxRetries}`);
+        retries++;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        continue;
+      }
+      
+      // If it's a rate limit error, retry with exponential backoff
+      if (error.message.includes('Too many requests')) {
+        retries++;
+        continue;
+      }
+      
+      // If it's a network error, retry
+      if (error.message.includes('Failed to fetch')) {
+        retries++;
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retries)));
+        continue;
+      }
+      
+      // For other errors, throw immediately
+      throw error;
+    }
+  }
   
-  if (!response.ok) {
-    if (response.status === 404) throw new Error(`Subreddit r/${subreddit} not found.`);
-    if (response.status === 403) throw new Error(`Subreddit r/${subreddit} is private/quarantined.`);
-    if (response.status === 429) throw new Error(`Too many requests. Please wait.`);
-    throw new Error(`Failed to fetch r/${subreddit}: ${response.status}`);
-  }
-
-  const jsonData = await response.json();
-  if (!jsonData.data || !jsonData.data.children) {
-    throw new Error(`Invalid data from r/${subreddit}.`);
-  }
-
-  return { 
-    posts: jsonData.data.children,
-    after: jsonData.data.after 
-  };
+  // If we've exhausted retries, throw the last error
+  throw lastError || new Error(`Failed to fetch after ${maxRetries} retries.`);
 }
 
 /**
@@ -65,19 +121,26 @@ export async function fetchSubredditSuggestions(query: string): Promise<Array<{n
     }
     
     // If no mock data or not a match, try the API with proper error handling
-    const url = `https://www.reddit.com/api/search_reddit_names.json?query=${encodeURIComponent(query)}&exact=false&include_over_18=true`;
+    const url = `https://www.reddit.com/api/search_reddit_names.json?query=${encodeURIComponent(query)}&exact=false&include_over_18=true&_=${Date.now()}`;
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
     
     const response = await fetch(url, { 
       cache: 'no-store',
-      signal: controller.signal
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'web:gaslighter:v1.0'
+      }
     });
     
     clearTimeout(timeoutId);
     
-    if (!response.ok) return [];
+    if (!response.ok) {
+      // For suggestions, we just return empty rather than error
+      console.log(`Subreddit suggestion API error: ${response.status}`);
+      return [];
+    }
     
     const jsonData = await response.json();
     return (jsonData && Array.isArray(jsonData.names)) 

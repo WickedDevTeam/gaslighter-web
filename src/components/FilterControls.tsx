@@ -3,6 +3,7 @@ import React from 'react';
 import SubredditInput from '@/components/SubredditInput';
 import { Button } from '@/components/ui/button';
 import { SortMode, TopTimeFilter, ViewMode } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 
 interface FilterControlsProps {
   targetSubreddit: string;
@@ -33,6 +34,31 @@ const FilterControls: React.FC<FilterControlsProps> = ({
   onTopTimeFilterChange,
   onSubmit,
 }) => {
+  const { toast } = useToast();
+
+  const handleSubmit = () => {
+    // Validate fields
+    if (!targetSubreddit.trim()) {
+      toast({
+        title: "Target subreddit required",
+        description: "Please enter a target subreddit",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!sourceSubreddits.trim()) {
+      toast({
+        title: "Source subreddits required",
+        description: "Please enter at least one source subreddit",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    onSubmit();
+  };
+
   return (
     <div className="p-4 rounded-lg">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -108,13 +134,14 @@ const FilterControls: React.FC<FilterControlsProps> = ({
             )}
           </div>
           
-          <button 
-            className={`primary-button w-full h-10 ${isLoadingPosts ? 'opacity-50 cursor-not-allowed' : ''}`} 
-            onClick={onSubmit} 
+          <Button 
+            className="w-full h-10" 
+            variant="default"
+            onClick={handleSubmit} 
             disabled={isLoadingPosts}
           >
-            Gaslight!
-          </button>
+            {isLoadingPosts ? 'Loading...' : 'Gaslight!'}
+          </Button>
         </div>
       </div>
     </div>
