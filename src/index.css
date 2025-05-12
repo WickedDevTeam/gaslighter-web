@@ -134,6 +134,32 @@
   .mobile-modal-nav {
     @apply bg-black/40 backdrop-blur-sm rounded-full p-2 flex justify-center items-center;
   }
+  
+  /* Mobile carousel fixes */
+  .mobile-media-carousel .embla__viewport {
+    @apply h-full touch-pan-y;
+  }
+  
+  .mobile-media-carousel .embla__container {
+    @apply h-full;
+  }
+  
+  .mobile-media-carousel .embla__slide {
+    @apply h-full flex items-center justify-center;
+  }
+  
+  /* Media modal controls */
+  .media-modal-close-btn {
+    @apply z-50 absolute top-4 right-4 bg-black/40 backdrop-blur-sm rounded-full p-2 text-white;
+  }
+  
+  .media-modal-nav-btn {
+    @apply z-40 opacity-80 hover:opacity-100 transition-opacity;
+  }
+  
+  .media-modal-swipe-indicator {
+    @apply absolute text-white/60 flex items-center justify-center pointer-events-none;
+  }
 }
 
 /* Improved mobile layout */
