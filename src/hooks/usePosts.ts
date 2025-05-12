@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { PostData, SortMode, TopTimeFilter } from '@/types';
 import { 
@@ -36,7 +35,16 @@ export function usePosts() {
     setMessage(text);
     setMessageType(type);
     console.log(`[Message displayed] ${type}: ${text}`);
-  }, []);
+    
+    // Also show toast for errors
+    if (type === 'error') {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: text,
+      });
+    }
+  }, [toast]);
   
   const clearMessage = useCallback(() => {
     setMessage('');
@@ -189,6 +197,7 @@ export function usePosts() {
             if (mediaFromSub.length > 0) break; // Stop if we already have media
             
             try {
+              console.log(`Trying to fetch r/${name} with ${sortOption}`);
               const timeFilter = sortOption === 'top' ? 'month' : null;
               const data = await fetchRedditData(name, sortOption, timeFilter, 75);
               if (data.posts && data.posts.length > 0) {
@@ -198,7 +207,11 @@ export function usePosts() {
                   hasSuccessfulFetch = true;
                   console.log(`[fetchInitialData] Fetched ${extractedMedia.length} media items from r/${name} using ${sortOption}`);
                   break;
+                } else {
+                  console.log(`No media found in r/${name} using ${sortOption}`);
                 }
+              } else {
+                console.log(`No posts found in r/${name} using ${sortOption}`);
               }
             } catch (sortError) {
               console.log(`Error fetching r/${name} with ${sortOption}:`, sortError);
@@ -230,7 +243,7 @@ export function usePosts() {
         if (hasSuccessfulFetch) {
           displayMessage("No media content found in the source subreddits. Try different sources.", 'error');
         } else {
-          displayMessage("Failed to load source subreddits. Check your internet connection and try again.", 'error');
+          displayMessage("Failed to load source subreddits. Check your internet connection or try different subreddits.", 'error');
         }
         setIsLoadingPosts(false);
         setIsLoadingInitialSources(false);
@@ -268,7 +281,7 @@ export function usePosts() {
       }
 
       if (!targetData || !targetData.posts || targetData.posts.length === 0) {
-        displayMessage(`No posts found in r/${targetSubs.join(', ')} for selected filters.`, 'error');
+        displayMessage(`No posts found in r/${targetSubs.join(', ')}.`, 'error');
         setIsLoadingPosts(false);
         setIsLoadingInitialSources(false);
         setIsProcessingData(false);

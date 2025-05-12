@@ -14,18 +14,18 @@ const MessageArea: React.FC<MessageAreaProps> = ({
 }) => {
   if (!message) return null;
   
-  // Only show error messages, not info messages
-  if (type === 'info') return null;
-  
   return (
     <div className="mb-2 mt-1">
       <Alert 
-        variant="destructive" 
-        className="text-sm shadow-sm border-red-500"
+        variant={type === 'error' ? "destructive" : "default"} 
+        className={`text-sm shadow-sm ${type === 'error' ? 'border-red-500' : ''}`}
       >
-        <AlertCircle className="h-4 w-4 mr-2" />
+        {type === 'error' ? 
+          <AlertCircle className="h-4 w-4 mr-2" /> : 
+          <Info className="h-4 w-4 mr-2" />
+        }
         <AlertTitle className="font-medium">
-          Error
+          {type === 'error' ? 'Error' : 'Information'}
         </AlertTitle>
         <AlertDescription className="text-sm">
           {message}

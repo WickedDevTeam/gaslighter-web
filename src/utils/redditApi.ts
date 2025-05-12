@@ -28,6 +28,8 @@ export async function fetchRedditData(
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
+      console.log(`Fetching from Reddit API: ${url}`);
+      
       const response = await fetch(url, { 
         cache: 'no-store',
         signal: controller.signal,
@@ -54,6 +56,8 @@ export async function fetchRedditData(
         throw new Error(`Invalid data from r/${subreddit}.`);
       }
 
+      console.log(`Successfully fetched ${jsonData.data.children.length} posts from r/${subreddit} with ${sort} sort`);
+      
       return { 
         posts: jsonData.data.children,
         after: jsonData.data.after 
@@ -77,6 +81,7 @@ export async function fetchRedditData(
       
       // If it's a network error, retry
       if (error.message.includes('Failed to fetch')) {
+        console.log(`Network error for r/${subreddit}, retry ${retries + 1}/${maxRetries}`);
         retries++;
         await new Promise(resolve => setTimeout(resolve, 1000 * (retries)));
         continue;
@@ -350,3 +355,4 @@ export function extractMediaUrls(posts: RedditPost[]): MediaInfo[] {
   console.log(`[extractMediaUrls] Extracted ${media.length} media items from ${posts.length} posts`);
   return media;
 }
+
