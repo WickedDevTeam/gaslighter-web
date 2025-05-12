@@ -73,8 +73,9 @@ const PostCard: React.FC<PostCardProps> = ({
             alt="Gaslit Media" 
             loading="lazy" 
             onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-              const placeholder = (e.target as HTMLElement).parentElement?.querySelector('.media-error-placeholder');
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              const placeholder = target.parentElement?.querySelector('.media-error-placeholder') as HTMLElement;
               if (placeholder) placeholder.style.display = 'flex';
             }}
           />
@@ -92,8 +93,9 @@ const PostCard: React.FC<PostCardProps> = ({
             playsInline 
             preload="metadata"
             onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-              const placeholder = (e.target as HTMLElement).parentElement?.querySelector('.media-error-placeholder');
+              const target = e.target as HTMLVideoElement;
+              target.style.display = 'none';
+              const placeholder = target.parentElement?.querySelector('.media-error-placeholder') as HTMLElement;
               if (placeholder) placeholder.style.display = 'flex';
             }}
           />
