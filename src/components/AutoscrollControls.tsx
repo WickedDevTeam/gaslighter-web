@@ -1,7 +1,9 @@
+
 import React from 'react';
 import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
-import { Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Volume1, Volume2, VolumeX } from 'lucide-react';
+
 interface AutoscrollControlsProps {
   isEnabled: boolean;
   speed: number;
@@ -9,6 +11,7 @@ interface AutoscrollControlsProps {
   onToggle: (enabled: boolean) => void;
   onSpeedChange: (speed: number) => void;
 }
+
 const AutoscrollControls: React.FC<AutoscrollControlsProps> = ({
   isEnabled,
   speed,
@@ -16,7 +19,13 @@ const AutoscrollControls: React.FC<AutoscrollControlsProps> = ({
   onToggle,
   onSpeedChange
 }) => {
-  const [isOpen, setIsOpen] = React.useState(true);
+  // Define speed presets
+  const SPEED_PRESETS = {
+    SLOW: 8,
+    MEDIUM: 5,
+    FAST: 2
+  };
+
   return <div className="fixed bottom-4 right-4 z-50">
       {isEnabled && isPaused && <div className="fixed bottom-16 right-4 bg-black bg-opacity-70 text-white text-xs px-3 py-1 rounded-full animate-fade-in">
           Autoscroll paused (manual scroll)
@@ -33,15 +42,45 @@ const AutoscrollControls: React.FC<AutoscrollControlsProps> = ({
             </div>
           </div>
           
-          {isEnabled && <div className="flex items-right space-x-4 animate-fade-in">
-              <Slider value={[speed]} min={1} max={10} step={1} onValueChange={value => onSpeedChange(value[0])} orientation="vertical" className="h-24" />
-              <div className="flex flex-col justify-between h-24">
-                <span className="text-xs text-gray-300">Fast</span>
-                <span className="text-xs text-gray-300">Slow</span>
+          {isEnabled && (
+            <div className="flex flex-col space-y-2 animate-fade-in">
+              <div className="flex justify-between items-center text-xs text-gray-400 mb-1">
+                <span>Speed</span>
               </div>
-            </div>}
+              <div className="flex space-x-2">
+                <Button 
+                  size="sm" 
+                  variant={speed === SPEED_PRESETS.SLOW ? "default" : "outline"}
+                  onClick={() => onSpeedChange(SPEED_PRESETS.SLOW)}
+                  className={`flex-1 ${speed === SPEED_PRESETS.SLOW ? 'bg-green-500 hover:bg-green-600' : ''}`}
+                >
+                  <Volume1 size={16} className="mr-1" />
+                  Slow
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant={speed === SPEED_PRESETS.MEDIUM ? "default" : "outline"}
+                  onClick={() => onSpeedChange(SPEED_PRESETS.MEDIUM)}
+                  className={`flex-1 ${speed === SPEED_PRESETS.MEDIUM ? 'bg-green-500 hover:bg-green-600' : ''}`}
+                >
+                  <Volume2 size={16} className="mr-1" />
+                  Medium
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant={speed === SPEED_PRESETS.FAST ? "default" : "outline"}
+                  onClick={() => onSpeedChange(SPEED_PRESETS.FAST)}
+                  className={`flex-1 ${speed === SPEED_PRESETS.FAST ? 'bg-green-500 hover:bg-green-600' : ''}`}
+                >
+                  <VolumeX size={16} className="mr-1" />
+                  Fast
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>;
 };
+
 export default AutoscrollControls;

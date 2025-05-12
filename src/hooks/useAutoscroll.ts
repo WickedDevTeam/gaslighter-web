@@ -8,15 +8,21 @@ interface AutoscrollOptions {
   scrollContainer?: HTMLElement | null;
 }
 
-const SPEED_FACTOR = 0.5; // Base speed multiplier
+// Modified SPEED_FACTOR for the preset speeds:
+// - Higher speed value (e.g., 8) = slower scrolling
+// - Lower speed value (e.g., 2) = faster scrolling
+const BASE_SPEED_FACTOR = 0.5; 
 
 export function useAutoscroll({ isEnabled, speed, scrollContainer }: AutoscrollOptions) {
   const [isPaused, setIsPaused] = useState(false);
   const lastUserScrollTime = useRef(0);
   const scrollTimeoutRef = useRef<number | null>(null);
   
-  // Convert speed (1-10) to actual pixel scroll amount
-  const pixelsPerInterval = speed * SPEED_FACTOR;
+  // Convert speed to actual pixel scroll amount
+  // With the new preset system:
+  // - Higher speed number = slower scrolling (dividing by the speed)
+  // - Lower speed number = faster scrolling (dividing by the speed)
+  const pixelsPerInterval = BASE_SPEED_FACTOR * (10 / speed); // Invert the relationship
   
   // Throttled scroll function for smooth scrolling
   const scrollPage = useCallback(
