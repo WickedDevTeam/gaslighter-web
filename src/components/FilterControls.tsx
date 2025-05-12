@@ -143,7 +143,7 @@ const FilterControls: React.FC<FilterControlsProps> = ({
         
         {/* Updated Gaslight button with improved styling */}
         <div>
-          <Button onClick={handleSubmit} disabled={isLoadingPosts} className="h-11 px-8 bg-[#9b87f5] hover:bg-[#533ed1] shadow-md transition-all \n            font-medium text-base rounded-md border border-[#7E69AB]">
+          <Button onClick={handleSubmit} disabled={isLoadingPosts} className="h-11 px-8 bg-[#533ed1] hover:bg-[#604ae5] shadow-md transition-all \\n            font-medium text-base rounded-md border border-[#7E69AB]">
             {isLoadingPosts ? <>
                 <Spinner size="small" />
                 <span className="ml-2">Loading...</span>
