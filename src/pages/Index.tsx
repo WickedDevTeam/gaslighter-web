@@ -37,6 +37,7 @@ const Index = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isLoadingInitialSources, setIsLoadingInitialSources] = useState(false);
   const [isRefetchingSources, setIsRefetchingSources] = useState(false);
+  const [isSourceMediaReady, setIsSourceMediaReady] = useState(false);
 
   // Data states
   const [targetAfter, setTargetAfter] = useState<string | null>(null);
@@ -44,6 +45,7 @@ const Index = () => {
   const [currentTargetSubredditName, setCurrentTargetSubredditName] = useState('');
   const [currentSourceSubredditsNames, setCurrentSourceSubredditsNames] = useState<string[]>([]);
   const [allSourceMediaUrls, setAllSourceMediaUrls] = useState<MediaInfo[]>([]);
+  const [queuedTargetPosts, setQueuedTargetPosts] = useState<any[]>([]); // Store posts waiting for media
   const [displayedPosts, setDisplayedPosts] = useState<PostData[]>([]);
 
   // Message state
@@ -99,11 +101,13 @@ const Index = () => {
         console.log(`[Source media updated] Total: ${newUrls.length}`);
         return newUrls;
       });
+      setIsSourceMediaReady(true);
     } finally {
       setIsRefetchingSources(false);
     }
   }, [currentSourceSubredditsNames, isRefetchingSources, isLoadingInitialSources]);
   
+  // Modified to process posts from queue when source media is available
   const appendPostsToFeed = useCallback((targetPosts: any[]) => {
     console.log(`[Appending posts] Target posts: ${targetPosts.length}, Source media: ${allSourceMediaUrls.length}`);
     let postsAddedCount = 0;
@@ -151,7 +155,24 @@ const Index = () => {
     return postsAddedCount;
   }, [allSourceMediaUrls]);
   
-  // Key fix: Ensure source media is loaded before rendering posts
+  // Process queued posts when source media becomes available
+  useEffect(() => {
+    if (isSourceMediaReady && queuedTargetPosts.length > 0 && allSourceMediaUrls.length > 0) {
+      console.log(`[Processing queued posts] Count: ${queuedTargetPosts.length}`);
+      const postsAdded = appendPostsToFeed(queuedTargetPosts);
+      setQueuedTargetPosts([]); // Clear the queue
+      
+      if (postsAdded === 0) {
+        // If we still couldn't add any posts even with media available
+        displayMessage(`No media posts found in r/${currentTargetSubredditName}.`, 'error');
+      } else {
+        // Clear any error messages if posts were successfully added
+        clearMessage();
+      }
+    }
+  }, [isSourceMediaReady, queuedTargetPosts, allSourceMediaUrls, appendPostsToFeed, currentTargetSubredditName, displayMessage, clearMessage]);
+
+  // Modified to ensure source media loading first
   const fetchInitialData = useCallback(async () => {
     console.log('[fetchInitialData] Starting data fetch');
     clearMessage();
@@ -161,6 +182,8 @@ const Index = () => {
     setTargetAfter(null);
     setNoMoreTargetPosts(false);
     setAllSourceMediaUrls([]);
+    setIsSourceMediaReady(false);
+    setQueuedTargetPosts([]);
     
     const targetSub = targetSubreddit.trim().replace(/^r\//i, '');
     const sourceSubsRaw = sourceSubreddits.trim();
@@ -184,7 +207,7 @@ const Index = () => {
     setIsLoadingInitialSources(true);
     
     try {
-      // First fetch source media - KEY FIX: wait for this to complete before proceeding
+      // STEP 1: Fetch source media FIRST - wait for this to complete before proceeding
       console.log(`[fetchInitialData] Fetching media from ${sourceSubs.length} source subreddits`);
       const srcPromises = sourceSubs.map(name => fetchRedditData(name, 'hot', null, 75)
         .then(d => {
@@ -204,7 +227,7 @@ const Index = () => {
       const uniqueMedia = Array.from(new Map(allMedia.map(item => [item.url, item])).values());
       console.log(`[fetchInitialData] Source media collected: ${uniqueMedia.length} unique items`);
       
-      // KEY FIX: Check if we have source media before proceeding
+      // Check if we have source media before proceeding
       if (uniqueMedia.length === 0) {
         displayMessage("No media found in source subreddits. Try different sources.", 'error');
         setIsLoadingPosts(false);
@@ -212,9 +235,11 @@ const Index = () => {
         return;
       }
       
+      // Media is available - set it and mark as ready
       setAllSourceMediaUrls(uniqueMedia);
+      setIsSourceMediaReady(true);
 
-      // Now fetch target posts
+      // STEP 2: Now fetch target posts
       console.log(`[fetchInitialData] Fetching target posts from r/${targetSub}`);
       const targetData = await fetchRedditData(targetSub, sortMode, topTimeFilter, 25, null);
       
@@ -223,9 +248,11 @@ const Index = () => {
       } else {
         console.log(`[fetchInitialData] Received ${targetData.posts.length} target posts`);
         
-        // KEY FIX: Only try to append posts if we have source media
-        const postsAdded = appendPostsToFeed(targetData.posts);
+        // Store the after token regardless
         setTargetAfter(targetData.after);
+        
+        // Now that we have source media, directly append the posts to the feed
+        const postsAdded = appendPostsToFeed(targetData.posts);
         
         if (postsAdded === 0) {
           if (targetData.posts.length > 0) {
@@ -233,6 +260,9 @@ const Index = () => {
           } else {
             displayMessage(`No media posts found in r/${targetSub}.`, 'error');
           }
+        } else {
+          // If posts were added successfully, clear any error messages
+          clearMessage();
         }
         
         if (!targetData.after) {
@@ -250,12 +280,23 @@ const Index = () => {
   }, [targetSubreddit, sourceSubreddits, sortMode, topTimeFilter, appendPostsToFeed, clearMessage, displayMessage]);
   
   const loadMoreTargetPosts = useCallback(async () => {
-    if (isLoadingMore || noMoreTargetPosts || !currentTargetSubredditName || !targetAfter) return;
+    if (isLoadingMore || noMoreTargetPosts || !currentTargetSubredditName || !targetAfter || !isSourceMediaReady) return;
     setIsLoadingMore(true);
     try {
       const data = await fetchRedditData(currentTargetSubredditName, sortMode, topTimeFilter, 15, targetAfter);
       if (data.posts?.length > 0) {
-        const postsAdded = appendPostsToFeed(data.posts);
+        // Only try to append posts if we have source media available
+        if (allSourceMediaUrls.length > 0) {
+          const postsAdded = appendPostsToFeed(data.posts);
+          if (postsAdded === 0) {
+            // If we couldn't add any posts, queue them for when media is available
+            setQueuedTargetPosts(prev => [...prev, ...data.posts]);
+          }
+        } else {
+          // Queue posts for when media becomes available
+          setQueuedTargetPosts(prev => [...prev, ...data.posts]);
+        }
+        
         setTargetAfter(data.after);
         if (!data.after) {
           setNoMoreTargetPosts(true);
@@ -268,7 +309,7 @@ const Index = () => {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, noMoreTargetPosts, currentTargetSubredditName, targetAfter, sortMode, topTimeFilter, appendPostsToFeed, displayMessage]);
+  }, [isLoadingMore, noMoreTargetPosts, currentTargetSubredditName, targetAfter, sortMode, topTimeFilter, appendPostsToFeed, displayMessage, isSourceMediaReady, allSourceMediaUrls]);
 
   // Set up scroll listener for infinite loading
   useEffect(() => {
