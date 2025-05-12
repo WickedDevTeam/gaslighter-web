@@ -2,8 +2,19 @@
 import { MediaInfo, RedditPost, RedditResponse } from '@/types';
 import { toast } from '@/hooks/use-toast';
 
+// Detect if content is likely NSFW based on the subreddit name
+function isLikelyNSFW(subreddit: string): boolean {
+  const nsfwKeywords = [
+    'nsfw', 'porn', 'sex', 'adult', 'xxx', 'gonewild', 'ass', 'tits', 
+    'boobs', 'dick', 'cock', 'pussy', 'nude', 'naked', 'onlyfans', 'cum', 'sexy'
+  ];
+  
+  const subredditLower = subreddit.toLowerCase();
+  return nsfwKeywords.some(keyword => subredditLower.includes(keyword));
+}
+
 /**
- * Fetches data from Reddit API with retry mechanism
+ * Fetches data from Reddit API with retry mechanism and better error handling
  */
 export async function fetchRedditData(
   subreddit: string,
@@ -15,6 +26,11 @@ export async function fetchRedditData(
   const maxRetries = 2;
   let retries = 0;
   let lastError: Error | null = null;
+
+  // Check for likely NSFW content early
+  if (isLikelyNSFW(subreddit)) {
+    throw new Error(`Subreddit r/${subreddit} appears to be age-restricted (NSFW). Try a SFW subreddit instead.`);
+  }
 
   while (retries <= maxRetries) {
     try {
@@ -30,15 +46,19 @@ export async function fetchRedditData(
       
       console.log(`Fetching from Reddit API: ${url}`);
       
-      // Attempt to use fetch with appropriate headers that won't trigger CORS issues
+      // Attempt to fetch with user's browser context
       const response = await fetch(url, { 
         cache: 'no-store',
         signal: controller.signal,
         credentials: 'omit', // Don't send cookies for cross-origin requests
         mode: 'cors', // Explicitly specify CORS mode
         headers: {
-          // Use standard browser headers
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          // Make request appear more like a regular browser
+          'User-Agent': navigator.userAgent || 'Mozilla/5.0',
+          'Accept-Language': navigator.language || 'en-US',
+          'Referer': 'https://www.reddit.com/',
+          'Origin': 'https://www.reddit.com'
         }
       });
       
@@ -103,7 +123,7 @@ export async function fetchRedditData(
   
   // If we've exhausted retries, throw the last error
   if (lastError?.message.includes('Failed to fetch')) {
-    throw new Error(`Network error: Unable to connect to Reddit. Try different subreddits or check your connection.`);
+    throw new Error(`Reddit API access issue: Reddit blocks direct API access from browsers, especially for NSFW content. Try SFW subreddits like 'pics', 'funny', or 'aww'.`);
   }
   
   throw lastError || new Error(`Failed to fetch after ${maxRetries} retries.`);

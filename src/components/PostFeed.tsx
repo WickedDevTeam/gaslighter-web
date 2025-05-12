@@ -5,7 +5,7 @@ import Spinner from '@/components/Spinner';
 import { PostData, ViewMode } from '@/types';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { WifiOff, ShieldAlert } from 'lucide-react';
+import { WifiOff, ShieldAlert, RefreshCw } from 'lucide-react';
 
 interface PostFeedProps {
   displayedPosts: PostData[];
@@ -27,12 +27,14 @@ const PostFeed: React.FC<PostFeedProps> = ({
   
   const isNetworkError = message?.includes('Failed to fetch') || 
                          message?.includes('Network error') || 
-                         message?.includes('Too many requests');
+                         message?.includes('Too many requests') ||
+                         message?.includes('Unable to connect');
                          
   const isContentRestrictionError = message?.includes('403') || 
                                    message?.includes('private') || 
                                    message?.includes('quarantined') ||
-                                   message?.includes('NSFW');
+                                   message?.includes('NSFW') ||
+                                   message?.includes('age-restricted');
 
   // Get the appropriate grid class for the current view mode
   const getGridClasses = () => {
@@ -65,20 +67,20 @@ const PostFeed: React.FC<PostFeedProps> = ({
           </div>
           <p className="text-lg font-medium">
             {isContentRestrictionError ? 'Content Restriction Issue' : 
-             isNetworkError ? 'Network Connection Issue' : 
+             isNetworkError ? 'Reddit API Access Issue' : 
              'No posts to display'}
           </p>
           <p className="text-sm mt-1">
             {isContentRestrictionError ? 
               'This may be an age-restricted, private, or quarantined subreddit.' : 
              isNetworkError ? 
-              'Unable to connect to Reddit. Try using SFW (Safe for Work) subreddits or check your network.' : 
+              'Reddit blocks direct API access from browsers for many subreddits, especially NSFW content.' : 
               'Enter subreddits and click "Load Posts"'}
           </p>
           {(isNetworkError || isContentRestrictionError) && (
             <div className="mt-4 text-sm">
-              <p>Try these example SFW subreddits:</p>
-              <p className="text-blue-500 mt-1">pics, funny, aww, mildlyinteresting, EarthPorn</p>
+              <p>Try these example SFW (Safe for Work) subreddits:</p>
+              <p className="text-blue-500 mt-1">pics, funny, aww, mildlyinteresting, EarthPorn, food, science</p>
             </div>
           )}
         </div>
