@@ -7,16 +7,28 @@ import Spinner from '@/components/Spinner';
 import FilterControls from '@/components/FilterControls';
 import { fetchRedditData, extractMediaUrls } from '@/utils/redditApi';
 import { PostData, ViewMode, SortMode, TopTimeFilter, MediaInfo } from '@/types';
+import { useSettings } from '@/hooks/useSettings';
 
 const Index = () => {
-  // Main inputs state
+  const { settings, isLoaded } = useSettings();
+  
+  // Main inputs state - initialize from settings when loaded
   const [targetSubreddit, setTargetSubreddit] = useState('');
   const [sourceSubreddits, setSourceSubreddits] = useState('pics');
-
-  // Feed control states
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [sortMode, setSortMode] = useState<SortMode>('hot');
   const [topTimeFilter, setTopTimeFilter] = useState<TopTimeFilter>('day');
+
+  // Apply stored settings on load
+  useEffect(() => {
+    if (isLoaded) {
+      setTargetSubreddit(settings.targetSubreddit);
+      setSourceSubreddits(settings.sourceSubreddits);
+      setViewMode(settings.viewMode);
+      setSortMode(settings.sortMode);
+      setTopTimeFilter(settings.topTimeFilter);
+    }
+  }, [isLoaded, settings]);
 
   // Loading states
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);

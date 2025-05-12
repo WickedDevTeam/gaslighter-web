@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import SubredditInput from '@/components/SubredditInput';
 import { Button } from '@/components/ui/button';
 import { SortMode, TopTimeFilter, ViewMode } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { useSettings } from '@/hooks/useSettings';
 
 interface FilterControlsProps {
   targetSubreddit: string;
@@ -35,6 +36,18 @@ const FilterControls: React.FC<FilterControlsProps> = ({
   onSubmit,
 }) => {
   const { toast } = useToast();
+  const { updateSettings } = useSettings();
+
+  // Update settings when controls change
+  useEffect(() => {
+    updateSettings({
+      targetSubreddit,
+      sourceSubreddits,
+      viewMode,
+      sortMode,
+      topTimeFilter
+    });
+  }, [targetSubreddit, sourceSubreddits, viewMode, sortMode, topTimeFilter, updateSettings]);
 
   const handleSubmit = () => {
     // Validate fields
