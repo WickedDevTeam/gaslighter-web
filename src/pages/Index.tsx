@@ -216,7 +216,7 @@ const Index = () => {
       <div className="main-container container mx-auto min-h-screen flex flex-col">
         <header className="page-header text-center">
           <h1 className="font-bold">Gaslighter</h1>
-          <p className="mt-1">See Reddit posts, but not quite as you remember them.</p>
+          
         </header>
 
         <section className="controls-section control-panel-bg shadow-md sticky top-2 z-50">
