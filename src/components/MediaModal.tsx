@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { PostData } from '@/types';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { ChevronLeft, ChevronRight, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { 
   Carousel,
   CarouselContent,
@@ -99,16 +100,17 @@ const MediaModal: React.FC<MediaModalProps> = ({
     
     return (
       <div 
-        className="modal-overlay fixed inset-0 bg-black/95 z-[1000] flex flex-col"
+        className="modal-overlay fixed inset-0 bg-black/90 z-[1000] flex flex-col"
         style={{ display: isOpen ? 'flex' : 'none' }}
       >
-        <div className="absolute top-2 right-2 z-[1001]">
-          <span 
-            className="modal-close text-4xl text-[#A0A0A0] cursor-pointer leading-none p-1 transition-colors hover:text-white"
+        <div className="absolute top-4 right-4 z-[1001]">
+          <button 
+            className="modal-close text-white flex items-center justify-center"
             onClick={onClose}
+            aria-label="Close modal"
           >
-            &times;
-          </span>
+            <X size={24} />
+          </button>
         </div>
         
         <Carousel 
@@ -120,9 +122,9 @@ const MediaModal: React.FC<MediaModalProps> = ({
             startIndex: initialSlide
           }}
         >
-          <CarouselContent className="h-full">
+          <CarouselContent className="h-full flex-col">
             {posts.map((post, index) => (
-              <CarouselItem key={index} className="h-full">
+              <CarouselItem key={index} className="h-full flex justify-center items-center" style={{padding: 0}}>
                 <div 
                   className="flex flex-col justify-center items-center h-full w-full"
                   onTouchStart={handleTouchStart}
@@ -149,7 +151,7 @@ const MediaModal: React.FC<MediaModalProps> = ({
                       />
                     )}
                     
-                    <div className="absolute bottom-4 left-4 right-4 bg-black/75 text-white text-2xl font-bold p-3 text-center leading-snug max-h-24 overflow-y-auto z-5 box-border rounded-md">
+                    <div className="absolute bottom-6 left-4 right-4 bg-black/80 backdrop-blur-sm text-white text-xl font-bold p-4 text-center leading-snug max-h-32 overflow-y-auto z-5 box-border rounded-lg">
                       {post.targetPostData.title || "Untitled"}
                     </div>
                   </div>
@@ -160,12 +162,12 @@ const MediaModal: React.FC<MediaModalProps> = ({
         </Carousel>
         
         <div className="absolute left-0 right-0 top-1/2 transform -translate-y-1/2 pointer-events-none">
-          <div className="flex items-center justify-between px-4">
-            <div className="h-12 w-12 rounded-full bg-black/30 flex items-center justify-center">
-              <span className="text-white/60 text-xl">↑</span>
+          <div className="flex items-center justify-between px-6">
+            <div className="h-14 w-14 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+              <ChevronUp className="text-white/70" size={24} />
             </div>
-            <div className="h-12 w-12 rounded-full bg-black/30 flex items-center justify-center">
-              <span className="text-white/60 text-xl">↓</span>
+            <div className="h-14 w-14 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+              <ChevronDown className="text-white/70" size={24} />
             </div>
           </div>
         </div>
@@ -173,30 +175,32 @@ const MediaModal: React.FC<MediaModalProps> = ({
     );
   }
 
-  // Desktop view (existing layout)
+  // Desktop view (existing layout with enhanced styling)
   const { targetPostData, replacementMedia } = posts[currentIndex];
   const title = targetPostData.title || "Untitled";
 
   return (
     <div 
-      className="modal-overlay fixed inset-0 bg-black/95 flex justify-center items-center z-[1000] p-1"
+      className="modal-overlay fixed inset-0 bg-black/90 flex justify-center items-center z-[1000] p-4"
       style={{ display: isOpen ? 'flex' : 'none' }}
       onClick={handleOverlayClick}
     >
-      <div className="modal-content bg-[#0A0A0A] rounded border border-[#2A2A2E] w-full h-full overflow-hidden relative flex flex-col items-center justify-center">
-        <span 
-          className="modal-close absolute top-2 right-2 text-4xl text-[#A0A0A0] cursor-pointer leading-none p-1 transition-colors hover:text-white z-[1001]"
+      <div className="modal-content bg-[#0A0A0A] rounded-xl border border-[#333333] w-full h-full overflow-hidden relative flex flex-col items-center justify-center">
+        <button 
+          className="modal-close absolute top-4 right-4 text-white cursor-pointer z-[1001]"
           onClick={onClose}
+          aria-label="Close modal"
         >
-          &times;
-        </span>
+          <X size={24} />
+        </button>
         
         <button 
-          className="modal-nav-arrow prev absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-3 text-3xl cursor-pointer z-10 rounded transition-colors hover:bg-black/60"
+          className="modal-nav-arrow prev absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 backdrop-blur-sm text-white cursor-pointer z-10 rounded-full"
           onClick={handlePrev}
           disabled={currentIndex === 0}
+          aria-label="Previous"
         >
-          &lt;
+          <ChevronLeft size={24} />
         </button>
         
         <div className="modal-media-wrapper w-full h-full flex relative justify-center items-center overflow-hidden bg-black">
@@ -219,17 +223,18 @@ const MediaModal: React.FC<MediaModalProps> = ({
             />
           )}
           
-          <h3 className="modal-title absolute bottom-4 left-4 right-4 bg-black/75 text-white text-2xl font-bold p-3 text-center leading-snug max-h-24 overflow-y-auto z-5 box-border rounded-md">
+          <h3 className="modal-title absolute bottom-6 left-6 right-6 bg-black/80 backdrop-blur-sm text-white text-2xl font-bold p-4 text-center leading-snug max-h-32 overflow-y-auto z-5 box-border rounded-lg">
             {title}
           </h3>
         </div>
         
         <button 
-          className="modal-nav-arrow next absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-3 text-3xl cursor-pointer z-10 rounded transition-colors hover:bg-black/60"
+          className="modal-nav-arrow next absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 backdrop-blur-sm text-white cursor-pointer z-10 rounded-full"
           onClick={handleNext}
           disabled={currentIndex === posts.length - 1}
+          aria-label="Next"
         >
-          &gt;
+          <ChevronRight size={24} />
         </button>
       </div>
     </div>
