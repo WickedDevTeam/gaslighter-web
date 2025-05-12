@@ -139,27 +139,29 @@ const FilterControls: React.FC<FilterControlsProps> = ({
       {/* Second row - View controls */}
       <div className="mb-3">
         <label className="form-label text-xs block mb-1">View As:</label>
-        <ToggleGroup 
-          type="single" 
-          value={viewMode}
-          onValueChange={(value) => value && onViewModeChange(value as ViewMode)}
-          className="flex gap-1"
-        >
-          <ToggleGroupItem value="compact" aria-label="Compact View" className="h-9 px-2 text-xs">
-            <LayoutGrid className="h-3 w-3 mr-1" />
-            <span>Compact</span>
-          </ToggleGroupItem>
+        <div className="flex justify-start">
+          <ToggleGroup 
+            type="single" 
+            value={viewMode}
+            onValueChange={(value) => value && onViewModeChange(value as ViewMode)}
+            className="flex gap-1"
+          >
+            <ToggleGroupItem value="compact" aria-label="Compact View" className="h-9 px-2 text-xs">
+              <LayoutGrid className="h-3 w-3 mr-1" />
+              <span>Compact</span>
+            </ToggleGroupItem>
 
-          <ToggleGroupItem value="large" aria-label="Large View" className="h-9 px-2 text-xs">
-            <Columns3 className="h-3 w-3 mr-1" />
-            <span>Large</span>
-          </ToggleGroupItem>
+            <ToggleGroupItem value="large" aria-label="Large View" className="h-9 px-2 text-xs">
+              <Columns3 className="h-3 w-3 mr-1" />
+              <span>Large</span>
+            </ToggleGroupItem>
 
-          <ToggleGroupItem value="extra-large" aria-label="Extra Large View" className="h-9 px-2 text-xs">
-            <LayoutList className="h-3 w-3 mr-1" />
-            <span>XL</span>
-          </ToggleGroupItem>
-        </ToggleGroup>
+            <ToggleGroupItem value="extra-large" aria-label="Extra Large View" className="h-9 px-2 text-xs">
+              <LayoutList className="h-3 w-3 mr-1" />
+              <span>XL</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
       </div>
       
       {/* Third row - Gaslight button */}
