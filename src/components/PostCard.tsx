@@ -145,14 +145,16 @@ const PostCard: React.FC<PostCardProps> = ({
   } else {
     return (
       <div className="gallery-item" onClick={handlePostClick}>
-        <div className="media-container">
+        <div className="media-container relative">
           {renderMedia()}
+          <div className="absolute inset-x-0 bottom-0 bg-black/70 backdrop-blur-sm p-3">
+            <h3 
+              className="text-white text-lg font-bold leading-tight line-clamp-2 text-center"
+              title={title}
+              dangerouslySetInnerHTML={{ __html: title }}
+            />
+          </div>
         </div>
-        <div 
-          className="gallery-item-title" 
-          title={title}
-          dangerouslySetInnerHTML={{ __html: title }}
-        />
       </div>
     );
   }
