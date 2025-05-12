@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -141,6 +140,7 @@ video::-webkit-media-controls-panel { background-color: rgba(0,0,0,0.75); }
   outline: none; 
 } 
 
+/* Updated button styles */
 .primary-button { 
   background-color: #F2F2F2; 
   color: #0D0D0D; 
@@ -192,45 +192,7 @@ video::-webkit-media-controls-panel { background-color: rgba(0,0,0,0.75); }
   box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
 }
 
-.card-content { 
-  background-color: #1A1A1A; 
-  border: 1px solid #333333; 
-  border-radius: 0.5rem; 
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
-  cursor: pointer;
-  transition: all 0.25s ease;
-  overflow: hidden;
-}
-
-.card-content:hover { 
-  border-color: #555555;
-  transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.2);
-}
-
-.card-title-text { 
-  font-size: 0.95rem; 
-  font-weight: 600; 
-  color: #F2F2F2; 
-  line-height: 1.4;
-} 
-
-.card-secondary-text { 
-  font-size: 0.75rem; 
-  color: #A0A0A0; 
-} 
-
-.card-link-text { 
-  font-size: 0.75rem; 
-  color: #D1D5DB; 
-  transition: all 0.2s ease;
-} 
-
-.card-link-hover:hover { 
-  color: #FFFFFF; 
-  text-decoration: underline;
-} 
-
+/* Updated form label style */
 .form-label { 
   font-size: 0.75rem; 
   font-weight: 500; 
@@ -244,6 +206,92 @@ video::-webkit-media-controls-panel { background-color: rgba(0,0,0,0.75); }
   background-repeat: no-repeat; 
   background-size: 0.9em 0.9em; 
   padding-right: 2rem;
+}
+
+/* Updated controls section */
+.controls-section { 
+  padding: 0;
+  border-radius: 0.75rem; 
+  margin-bottom: 1.5rem;
+} 
+
+.controls-grid { 
+  gap: 1rem; 
+} 
+
+.controls-sub-grid { 
+  margin-top: 1rem; 
+  padding-top: 1rem; 
+  gap: 1rem; 
+  border-color: #333333; 
+} 
+
+.feed-main-content { 
+  padding-top: 1.5rem; 
+} 
+
+.feed-list-gap { 
+  gap: 1.5rem; 
+} 
+
+.feed-gallery-gap { 
+  gap: 1.5rem; 
+} 
+
+.main-footer { 
+  margin-top: 2rem; 
+  padding: 1.5rem 0; 
+  font-size: 0.75rem; 
+  color: #A0A0A0; 
+  border-top: 1px solid #333333;
+}
+
+/* Modal Styling Enhancements */
+.modal-overlay {
+  backdrop-filter: blur(8px);
+  transition: opacity 0.3s ease;
+}
+
+.modal-content {
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.modal-close {
+  background-color: rgba(10, 10, 10, 0.5);
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background-color: rgba(10, 10, 10, 0.8);
+  transform: scale(1.1);
+}
+
+.modal-nav-arrow {
+  border-radius: 50%;
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+
+.modal-nav-arrow:hover {
+  transform: scale(1.1);
+}
+
+.modal-title {
+  transform: translateY(0);
+  opacity: 0.95;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .gallery-item {
@@ -373,7 +421,7 @@ video::-webkit-media-controls-panel { background-color: rgba(0,0,0,0.75); }
 }   
 
 .controls-section { 
-  padding: 1rem 1.25rem; 
+  padding: 0;
   border-radius: 0.75rem; 
   margin-bottom: 1.5rem;
 } 
@@ -407,52 +455,4 @@ video::-webkit-media-controls-panel { background-color: rgba(0,0,0,0.75); }
   font-size: 0.75rem; 
   color: #A0A0A0; 
   border-top: 1px solid #333333;
-}
-
-/* Modal Styling Enhancements */
-.modal-overlay {
-  backdrop-filter: blur(8px);
-  transition: opacity 0.3s ease;
-}
-
-.modal-content {
-  border-radius: 0.75rem;
-  overflow: hidden;
-  transition: transform 0.3s ease, opacity 0.3s ease;
-}
-
-.modal-close {
-  background-color: rgba(10, 10, 10, 0.5);
-  border-radius: 50%;
-  width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.modal-close:hover {
-  background-color: rgba(10, 10, 10, 0.8);
-  transform: scale(1.1);
-}
-
-.modal-nav-arrow {
-  border-radius: 50%;
-  width: 3rem;
-  height: 3rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.25s ease;
-}
-
-.modal-nav-arrow:hover {
-  transform: scale(1.1);
-}
-
-.modal-title {
-  transform: translateY(0);
-  opacity: 0.95;
-  transition: opacity 0.3s ease, transform 0.3s ease;
 }
