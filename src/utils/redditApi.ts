@@ -2,19 +2,8 @@
 import { MediaInfo, RedditPost, RedditResponse } from '@/types';
 import { toast } from '@/hooks/use-toast';
 
-// Detect if content is likely NSFW based on the subreddit name
-function isLikelyNSFW(subreddit: string): boolean {
-  const nsfwKeywords = [
-    'nsfw', 'porn', 'sex', 'adult', 'xxx', 'gonewild', 'ass', 'tits', 
-    'boobs', 'dick', 'cock', 'pussy', 'nude', 'naked', 'onlyfans', 'cum', 'sexy'
-  ];
-  
-  const subredditLower = subreddit.toLowerCase();
-  return nsfwKeywords.some(keyword => subredditLower.includes(keyword));
-}
-
 /**
- * Fetches data from Reddit API with retry mechanism and better error handling
+ * Fetches data from Reddit API with retry mechanism
  */
 export async function fetchRedditData(
   subreddit: string,
@@ -26,11 +15,6 @@ export async function fetchRedditData(
   const maxRetries = 2;
   let retries = 0;
   let lastError: Error | null = null;
-
-  // Check for likely NSFW content early
-  if (isLikelyNSFW(subreddit)) {
-    throw new Error(`Subreddit r/${subreddit} appears to be age-restricted (NSFW). Try a SFW subreddit instead.`);
-  }
 
   while (retries <= maxRetries) {
     try {
@@ -44,21 +28,11 @@ export async function fetchRedditData(
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
-      console.log(`Fetching from Reddit API: ${url}`);
-      
-      // Attempt to fetch with user's browser context
       const response = await fetch(url, { 
         cache: 'no-store',
         signal: controller.signal,
-        credentials: 'omit', // Don't send cookies for cross-origin requests
-        mode: 'cors', // Explicitly specify CORS mode
         headers: {
-          'Accept': 'application/json',
-          // Make request appear more like a regular browser
-          'User-Agent': navigator.userAgent || 'Mozilla/5.0',
-          'Accept-Language': navigator.language || 'en-US',
-          'Referer': 'https://www.reddit.com/',
-          'Origin': 'https://www.reddit.com'
+          'User-Agent': 'web:gaslighter:v1.0'
         }
       });
       
@@ -66,7 +40,7 @@ export async function fetchRedditData(
       
       if (!response.ok) {
         if (response.status === 404) throw new Error(`Subreddit r/${subreddit} not found.`);
-        if (response.status === 403) throw new Error(`Subreddit r/${subreddit} is private, quarantined, or age-restricted (NSFW).`);
+        if (response.status === 403) throw new Error(`Subreddit r/${subreddit} is private/quarantined.`);
         if (response.status === 429) {
           // Rate limited - wait longer between retries
           await new Promise(resolve => setTimeout(resolve, 2000 * (retries + 1)));
@@ -80,8 +54,6 @@ export async function fetchRedditData(
         throw new Error(`Invalid data from r/${subreddit}.`);
       }
 
-      console.log(`Successfully fetched ${jsonData.data.children.length} posts from r/${subreddit} with ${sort} sort`);
-      
       return { 
         posts: jsonData.data.children,
         after: jsonData.data.after 
@@ -103,14 +75,8 @@ export async function fetchRedditData(
         continue;
       }
       
-      // Check if error might be related to NSFW content
-      if (error.message.includes('403')) {
-        throw new Error(`Subreddit r/${subreddit} appears to be age-restricted (NSFW), private, or quarantined.`);
-      }
-      
       // If it's a network error, retry
       if (error.message.includes('Failed to fetch')) {
-        console.log(`Network error for r/${subreddit}, retry ${retries + 1}/${maxRetries}`);
         retries++;
         await new Promise(resolve => setTimeout(resolve, 1000 * (retries)));
         continue;
@@ -122,10 +88,6 @@ export async function fetchRedditData(
   }
   
   // If we've exhausted retries, throw the last error
-  if (lastError?.message.includes('Failed to fetch')) {
-    throw new Error(`Reddit API access issue: Reddit blocks direct API access from browsers, especially for NSFW content. Try SFW subreddits like 'pics', 'funny', or 'aww'.`);
-  }
-  
   throw lastError || new Error(`Failed to fetch after ${maxRetries} retries.`);
 }
 
@@ -388,4 +350,3 @@ export function extractMediaUrls(posts: RedditPost[]): MediaInfo[] {
   console.log(`[extractMediaUrls] Extracted ${media.length} media items from ${posts.length} posts`);
   return media;
 }
-
