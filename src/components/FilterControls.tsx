@@ -132,7 +132,7 @@ const FilterControls: React.FC<FilterControlsProps> = ({
         
         {/* Gaslight button */}
         <div>
-          <Button onClick={handleSubmit} disabled={isLoadingPosts} className="h-11 px-8 bg-purple hover:bg-purple/90 shadow-lg transition-all hover:shadow-xl hover:scale-105 text-white font-semibold text-base">
+          <Button onClick={handleSubmit} disabled={isLoadingPosts} className="">
             {isLoadingPosts ? 'Loading...' : 'Gaslight!'}
           </Button>
         </div>
