@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, ArrowDown, ArrowRight, FastForward } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
 interface AutoscrollControlsProps {
   isEnabled: boolean;
   speed: number;
@@ -10,6 +12,7 @@ interface AutoscrollControlsProps {
   onToggle: (enabled: boolean) => void;
   onSpeedChange: (speed: number) => void;
 }
+
 const AutoscrollControls: React.FC<AutoscrollControlsProps> = ({
   isEnabled,
   speed,
@@ -23,7 +26,17 @@ const AutoscrollControls: React.FC<AutoscrollControlsProps> = ({
     MEDIUM: 5,
     FAST: 2
   };
+  
+  // Track open state and update when isEnabled changes
   const [isOpen, setIsOpen] = useState(true);
+  
+  // Auto-expand when autoscroll is enabled
+  useEffect(() => {
+    if (isEnabled) {
+      setIsOpen(true);
+    }
+  }, [isEnabled]);
+  
   return <div className="fixed bottom-4 right-4 z-50">
       {isEnabled && isPaused && <div className="fixed bottom-16 right-4 bg-black bg-opacity-70 text-white text-xs px-3 py-1 rounded-full animate-fade-in">
           Autoscroll paused (manual scroll)
@@ -72,4 +85,5 @@ const AutoscrollControls: React.FC<AutoscrollControlsProps> = ({
       </Collapsible>
     </div>;
 };
+
 export default AutoscrollControls;
