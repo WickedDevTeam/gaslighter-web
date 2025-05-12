@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import SubredditInput from '@/components/SubredditInput';
 import MessageArea from '@/components/MessageArea';
@@ -56,6 +55,9 @@ const Index = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [currentModalIndex, setCurrentModalIndex] = useState(-1);
   const feedContainerRef = useRef<HTMLDivElement>(null);
+
+  // Processing state to track if we're in the middle of preparing data
+  const [isProcessingData, setIsProcessingData] = useState(false);
 
   const displayMessage = useCallback((text: string, type: 'error' | 'info' = 'error') => {
     setMessage(text);
@@ -115,7 +117,7 @@ const Index = () => {
     
     // Don't try to append posts if we don't have source media
     if (allSourceMediaUrls.length === 0) {
-      console.log('[Warning] No source media available for replacement - skipping post addition');
+      console.log('[Warning] No source media available for replacement - queuing posts');
       return 0;
     }
     
@@ -149,9 +151,10 @@ const Index = () => {
     
     if (postsAddedCount === 0) {
       console.log('[Warning] No posts with media found to display');
+    } else {
+      setDisplayedPosts(prev => [...prev, ...newPosts]);
     }
     
-    setDisplayedPosts(prev => [...prev, ...newPosts]);
     return postsAddedCount;
   }, [allSourceMediaUrls]);
   
@@ -172,9 +175,10 @@ const Index = () => {
     }
   }, [isSourceMediaReady, queuedTargetPosts, allSourceMediaUrls, appendPostsToFeed, currentTargetSubredditName, displayMessage, clearMessage]);
 
-  // Modified to ensure source media loading first
+  // Completely revised to guarantee source media loading first
   const fetchInitialData = useCallback(async () => {
     console.log('[fetchInitialData] Starting data fetch');
+    setIsProcessingData(true);
     clearMessage();
     setDisplayedPosts([]);
     setCurrentModalIndex(-1);
@@ -191,6 +195,7 @@ const Index = () => {
     if (!targetSub || !sourceSubsRaw) {
       displayMessage("Please enter both target and source subreddits.", 'error');
       setIsLoadingPosts(false);
+      setIsProcessingData(false);
       return;
     }
     
@@ -199,16 +204,21 @@ const Index = () => {
     if (sourceSubs.length === 0) {
       displayMessage("Please enter valid, comma-separated source subreddits.", 'error');
       setIsLoadingPosts(false);
+      setIsProcessingData(false);
       return;
     }
     
     setCurrentTargetSubredditName(targetSub);
     setCurrentSourceSubredditsNames(sourceSubs);
-    setIsLoadingInitialSources(true);
     
     try {
+      // Show a loading message while we fetch media
+      displayMessage("Loading media sources...", 'info');
+      setIsLoadingInitialSources(true);
+      
       // STEP 1: Fetch source media FIRST - wait for this to complete before proceeding
       console.log(`[fetchInitialData] Fetching media from ${sourceSubs.length} source subreddits`);
+      
       const srcPromises = sourceSubs.map(name => fetchRedditData(name, 'hot', null, 75)
         .then(d => {
           console.log(`[fetchInitialData] Received ${d.posts?.length || 0} posts from r/${name}`);
@@ -232,12 +242,14 @@ const Index = () => {
         displayMessage("No media found in source subreddits. Try different sources.", 'error');
         setIsLoadingPosts(false);
         setIsLoadingInitialSources(false);
+        setIsProcessingData(false);
         return;
       }
       
       // Media is available - set it and mark as ready
       setAllSourceMediaUrls(uniqueMedia);
       setIsSourceMediaReady(true);
+      displayMessage("Mixing media with target posts...", 'info');
 
       // STEP 2: Now fetch target posts
       console.log(`[fetchInitialData] Fetching target posts from r/${targetSub}`);
@@ -245,29 +257,33 @@ const Index = () => {
       
       if (!targetData.posts || targetData.posts.length === 0) {
         displayMessage(`No posts found in r/${targetSub} for selected filters.`, 'error');
-      } else {
-        console.log(`[fetchInitialData] Received ${targetData.posts.length} target posts`);
-        
-        // Store the after token regardless
-        setTargetAfter(targetData.after);
-        
-        // Now that we have source media, directly append the posts to the feed
-        const postsAdded = appendPostsToFeed(targetData.posts);
-        
-        if (postsAdded === 0) {
-          if (targetData.posts.length > 0) {
-            displayMessage(`Found posts in r/${targetSub}, but none had replaceable media.`, 'error');
-          } else {
-            displayMessage(`No media posts found in r/${targetSub}.`, 'error');
-          }
+        setIsLoadingPosts(false);
+        setIsLoadingInitialSources(false);
+        setIsProcessingData(false);
+        return;
+      }
+      
+      console.log(`[fetchInitialData] Received ${targetData.posts.length} target posts`);
+      
+      // Store the after token regardless
+      setTargetAfter(targetData.after);
+      
+      // Now that we have source media, directly append the posts to the feed
+      const postsAdded = appendPostsToFeed(targetData.posts);
+      
+      if (postsAdded === 0) {
+        if (targetData.posts.length > 0) {
+          displayMessage(`Found posts in r/${targetSub}, but none had replaceable media.`, 'error');
         } else {
-          // If posts were added successfully, clear any error messages
-          clearMessage();
+          displayMessage(`No media posts found in r/${targetSub}.`, 'error');
         }
-        
-        if (!targetData.after) {
-          setNoMoreTargetPosts(true);
-        }
+      } else {
+        // If posts were added successfully, clear any error messages
+        clearMessage();
+      }
+      
+      if (!targetData.after) {
+        setNoMoreTargetPosts(true);
       }
     } catch (error: any) {
       console.error('[fetchInitialData] Error:', error);
@@ -275,6 +291,7 @@ const Index = () => {
     } finally {
       setIsLoadingInitialSources(false);
       setIsLoadingPosts(false);
+      setIsProcessingData(false);
       console.log('[fetchInitialData] Fetch operation completed');
     }
   }, [targetSubreddit, sourceSubreddits, sortMode, topTimeFilter, appendPostsToFeed, clearMessage, displayMessage]);
@@ -352,7 +369,7 @@ const Index = () => {
             viewMode={viewMode}
             sortMode={sortMode}
             topTimeFilter={topTimeFilter}
-            isLoadingPosts={isLoadingPosts}
+            isLoadingPosts={isLoadingPosts || isProcessingData}
             onTargetChange={setTargetSubreddit}
             onSourceChange={setSourceSubreddits}
             onViewModeChange={setViewMode}
@@ -370,7 +387,9 @@ const Index = () => {
               <div className="mx-auto mb-2">
                 <Spinner />
               </div>
-              <p className="text-sm text-gray-400">Mixing realities...</p>
+              <p className="text-sm text-gray-400">
+                {isLoadingInitialSources ? "Loading media sources..." : "Mixing realities..."}
+              </p>
             </div>
           )}
           
