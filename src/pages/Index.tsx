@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import SubredditInput from '@/components/SubredditInput';
 import MessageArea from '@/components/MessageArea';
@@ -6,6 +5,7 @@ import PostCard from '@/components/PostCard';
 import MediaModal from '@/components/MediaModal';
 import Spinner from '@/components/Spinner';
 import FilterControls from '@/components/FilterControls';
+import AutoscrollControls from '@/components/AutoscrollControls';
 import { fetchRedditData, extractMediaUrls } from '@/utils/redditApi';
 import { PostData, ViewMode, SortMode, TopTimeFilter, MediaInfo } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
@@ -136,8 +136,12 @@ const Index = () => {
     
     targetPosts.forEach(post => {
       const pData = post.data;
-      const isTrulyMediaPost = pData.post_hint === 'image' || pData.post_hint === 'hosted:video' || pData.post_hint === 'rich:video' || pData.is_video || pData.is_gallery || pData.preview && pData.preview.images && pData.preview.images.length > 0 && pData.domain !== 'self.' + pData.subreddit.toLowerCase() && !pData.url.includes('/comments/');
-      
+      const isTrulyMediaPost = pData.post_hint === 'image' || pData.post_hint === 'hosted:video' || 
+        pData.post_hint === 'rich:video' || pData.is_video || pData.is_gallery || 
+        (pData.preview && pData.preview.images && pData.preview.images.length > 0 && 
+        pData.domain !== 'self.' + pData.subreddit.toLowerCase() && 
+        !pData.url.includes('/comments/'));
+        
       if (isTrulyMediaPost) {
         // Only try to pick a random media if we have source media available
         const randomMedia = allSourceMediaUrls.length > 0 
@@ -461,23 +465,6 @@ const Index = () => {
         </section>
 
         <main className="feed-main-content flex-grow" ref={feedContainerRef}>
-          {isAutoscrollEnabled && (
-            <div className="fixed bottom-4 right-4 bg-black bg-opacity-70 text-white text-xs px-3 py-1 rounded-full z-10">
-              {isPaused ? "Autoscroll paused" : "Autoscrolling..."}
-            </div>
-          )}
-
-          {isLoadingPosts && (
-            <div className="text-center py-6">
-              <div className="mx-auto mb-2">
-                <Spinner />
-              </div>
-              <p className="text-sm text-gray-400">
-                {isLoadingInitialSources ? "Loading media sources..." : "Mixing realities..."}
-              </p>
-            </div>
-          )}
-          
           <div className={cn('grid grid-cols-1', getGridClasses())}>
             {displayedPosts.map((post, index) => (
               <PostCard 
@@ -499,6 +486,15 @@ const Index = () => {
           )}
         </main>
       </div>
+      
+      {/* Add the autoscroll controls */}
+      <AutoscrollControls
+        isEnabled={isAutoscrollEnabled}
+        speed={autoscrollSpeed}
+        isPaused={isPaused}
+        onToggle={handleAutoscrollToggle}
+        onSpeedChange={handleSpeedChange}
+      />
 
       <MediaModal 
         isOpen={modalOpen} 
