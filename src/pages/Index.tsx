@@ -246,12 +246,13 @@ const Index = () => {
 
   return (
     <div className="app-bg app-text">
-      <div className="main-container container mx-auto min-h-screen flex flex-col">
-        <header className="page-header text-center">
-          <h1 className="font-bold">Gaslighter</h1>
+      <div className="main-container container mx-auto px-4 min-h-screen flex flex-col">
+        <header className="page-header text-center py-6">
+          <h1 className="text-3xl font-bold">Gaslighter</h1>
+          <p className="text-sm text-muted-foreground mt-1">Mix reality with fiction</p>
         </header>
 
-        <section className="controls-section control-panel-bg shadow-md sticky top-2 z-50 rounded-lg">
+        <section className="controls-section shadow-xl sticky top-2 z-50 rounded-xl mb-6 overflow-hidden">
           <FilterControls
             targetSubreddit={targetSubreddit}
             sourceSubreddits={sourceSubreddits}
