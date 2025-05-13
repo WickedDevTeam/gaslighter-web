@@ -69,7 +69,7 @@ const FilterControls: React.FC<FilterControlsProps> = ({
     if (!targetSubreddit.trim()) {
       toast({
         title: "Target subreddit required",
-        description: "Please enter at least one target subreddit",
+        description: "Please enter a target subreddit",
         variant: "destructive"
       });
       return;
@@ -90,24 +90,9 @@ const FilterControls: React.FC<FilterControlsProps> = ({
       <div className="flex flex-col gap-4 mb-4">
         {/* Inputs */}
         <div className="flex flex-col md:flex-row gap-3">
-          <SubredditInput 
-            id="targetSubreddit" 
-            label="Target Subreddits (comma-separated)" 
-            value={targetSubreddit} 
-            onChange={onTargetChange} 
-            placeholder="e.g., news, politics, worldnews" 
-            className="md:w-1/2" 
-          />
+          <SubredditInput id="targetSubreddit" label="Target Subreddit" value={targetSubreddit} onChange={onTargetChange} placeholder="e.g., news" className="md:w-1/2" />
           
-          <SubredditInput 
-            id="sourceSubreddits" 
-            label="Source Subreddits (comma-separated)" 
-            value={sourceSubreddits} 
-            onChange={onSourceChange} 
-            placeholder="e.g., cats, dogpictures" 
-            isSourceField 
-            className="md:w-1/2" 
-          />
+          <SubredditInput id="sourceSubreddits" label="Source Subreddits (comma-separated)" value={sourceSubreddits} onChange={onSourceChange} placeholder="e.g., cats, dogpictures" isSourceField className="md:w-1/2" />
         </div>
         
         {/* Sort Controls - Better mobile layout */}

@@ -134,43 +134,13 @@
   .mobile-modal-nav {
     @apply bg-black/40 backdrop-blur-sm rounded-full p-2 flex justify-center items-center;
   }
-  
-  /* Mobile carousel fixes */
-  .mobile-media-carousel .embla__viewport {
-    @apply h-full touch-pan-y;
-  }
-  
-  .mobile-media-carousel .embla__container {
-    @apply h-full;
-  }
-  
-  .mobile-media-carousel .embla__slide {
-    @apply h-full flex items-center justify-center;
-  }
-  
-  /* Media modal controls */
-  .media-modal-close-btn {
-    @apply z-50 absolute top-4 right-4 bg-black/40 backdrop-blur-sm rounded-full p-2 text-white;
-  }
-  
-  .media-modal-nav-btn {
-    @apply z-40 opacity-80 hover:opacity-100 transition-opacity;
-  }
-  
-  .media-modal-swipe-indicator {
-    @apply absolute text-white/60 flex items-center justify-center pointer-events-none;
-  }
 }
 
 /* Improved mobile layout */
 @media (max-width: 768px) {
   select.form-input {
     /* Make sure selects have visible backgrounds on mobile */
-    background-color: rgba(255, 255, 255, 0.9);
-  }
-  
-  .dark select.form-input {
-    background-color: rgba(31, 41, 55, 0.9);
+    background-color: rgba(var(--background), 0.9);
   }
   
   .dropdown-menu {
@@ -178,80 +148,4 @@
     max-height: 80vh;
     max-width: 90vw;
   }
-  
-  /* Fix carousel on mobile */
-  .mobile-media-carousel .embla__viewport {
-    height: 100vh !important;
-    touch-action: pan-y !important;
-  }
-  
-  /* Enhanced touch targets on mobile */
-  .form-input, button, .toggle {
-    min-height: 40px;
-  }
-  
-  /* Fix media display on mobile */
-  .media-container img,
-  .media-container video {
-    max-height: 80vh;
-    object-fit: contain;
-  }
-  
-  /* Enhance mobile modal navigation */
-  .media-modal-swipe-indicator {
-    padding: 16px;
-    font-size: 24px;
-  }
-}
-
-/* Override embla carousel for vertical scroll on mobile */
-.embla-vertical {
-  height: 100%;
-  width: 100%;
-}
-
-.embla-vertical .embla__container {
-  flex-direction: column;
-}
-
-.embla-vertical .embla__slide {
-  height: 100%;
-  width: 100%;
-}
-
-/* Media modal size and alignment fixes */
-.media-modal-content {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  width: 100%;
-}
-
-.media-modal-content img,
-.media-modal-content video {
-  max-height: 85vh;
-  max-width: 100%;
-  object-fit: contain;
-}
-
-/* Better touch controls for mobile */
-.touch-controls {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  z-index: 10;
-}
-
-.touch-controls.hide-controls * {
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-/* Prevent body scroll when modal is open */
-body.modal-open {
-  overflow: hidden;
-  position: fixed;
-  width: 100%;
-  height: 100%;
 }
