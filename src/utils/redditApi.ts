@@ -1,9 +1,8 @@
 
 import { MediaInfo, RedditPost, RedditResponse } from '@/types';
-import { toast } from '@/hooks/use-toast';
 
 /**
- * Fetches data from Reddit API with retry mechanism
+ * Fetches data from Reddit API with CORS workaround and retry mechanism
  */
 export async function fetchRedditData(
   subreddit: string,
@@ -18,21 +17,31 @@ export async function fetchRedditData(
 
   while (retries <= maxRetries) {
     try {
-      let url = `https://www.reddit.com/r/${subreddit}/${sort}.json?limit=${limit}&raw_json=1`;
-      if (sort === 'top' && timeFilter) url += `&t=${timeFilter}`;
-      if (afterToken) url += `&after=${afterToken}`;
-
-      // Add a random parameter to avoid Reddit's caching
-      url += `&_=${Date.now()}`;
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      // Use a CORS proxy service for Reddit API access
+      let baseUrl = `https://api.allorigins.win/get?url=`;
+      let redditUrl = `https://www.reddit.com/r/${subreddit}/${sort}.json?limit=${limit}&raw_json=1`;
       
-      const response = await fetch(url, { 
-        cache: 'no-store',
+      if (sort === 'top' && timeFilter) {
+        redditUrl += `&t=${timeFilter}`;
+      }
+      if (afterToken) {
+        redditUrl += `&after=${afterToken}`;
+      }
+      
+      // Add timestamp to prevent caching
+      redditUrl += `&_=${Date.now()}`;
+      
+      const fullUrl = baseUrl + encodeURIComponent(redditUrl);
+      
+      console.log(`[Reddit API] Fetching r/${subreddit} (attempt ${retries + 1})`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      
+      const response = await fetch(fullUrl, { 
         signal: controller.signal,
         headers: {
-          'User-Agent': 'web:gaslighter:v1.0'
+          'Accept': 'application/json',
         }
       });
       
@@ -42,17 +51,27 @@ export async function fetchRedditData(
         if (response.status === 404) throw new Error(`Subreddit r/${subreddit} not found.`);
         if (response.status === 403) throw new Error(`Subreddit r/${subreddit} is private/quarantined.`);
         if (response.status === 429) {
-          // Rate limited - wait longer between retries
           await new Promise(resolve => setTimeout(resolve, 2000 * (retries + 1)));
-          throw new Error(`Too many requests. Retrying...`);
+          throw new Error(`Rate limited. Retrying...`);
         }
         throw new Error(`Failed to fetch r/${subreddit}: ${response.status}`);
       }
 
-      const jsonData = await response.json();
-      if (!jsonData.data || !jsonData.data.children) {
-        throw new Error(`Invalid data from r/${subreddit}.`);
+      const proxyData = await response.json();
+      
+      // Parse the contents from the CORS proxy
+      let jsonData;
+      try {
+        jsonData = JSON.parse(proxyData.contents);
+      } catch (parseError) {
+        throw new Error(`Invalid response format from r/${subreddit}`);
       }
+      
+      if (!jsonData.data || !jsonData.data.children) {
+        throw new Error(`No data available from r/${subreddit}.`);
+      }
+
+      console.log(`[Reddit API] Successfully fetched ${jsonData.data.children.length} posts from r/${subreddit}`);
 
       return { 
         posts: jsonData.data.children,
@@ -63,32 +82,33 @@ export async function fetchRedditData(
       
       // If it's an AbortError (timeout), log and retry
       if (error.name === 'AbortError') {
-        console.log(`Request timeout for r/${subreddit}, retry ${retries + 1}/${maxRetries}`);
+        console.log(`[Reddit API] Request timeout for r/${subreddit}, retry ${retries + 1}/${maxRetries}`);
         retries++;
         await new Promise(resolve => setTimeout(resolve, 1000));
         continue;
       }
       
       // If it's a rate limit error, retry with exponential backoff
-      if (error.message.includes('Too many requests')) {
+      if (error.message.includes('Rate limited')) {
         retries++;
         continue;
       }
       
       // If it's a network error, retry
-      if (error.message.includes('Failed to fetch')) {
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
         retries++;
-        await new Promise(resolve => setTimeout(resolve, 1000 * (retries)));
+        await new Promise(resolve => setTimeout(resolve, 1000 * retries));
         continue;
       }
       
       // For other errors, throw immediately
+      console.error(`[Reddit API] Error fetching r/${subreddit}:`, error);
       throw error;
     }
   }
   
   // If we've exhausted retries, throw the last error
-  throw lastError || new Error(`Failed to fetch after ${maxRetries} retries.`);
+  throw lastError || new Error(`Failed to fetch r/${subreddit} after ${maxRetries} retries.`);
 }
 
 /**
@@ -98,16 +118,37 @@ export async function fetchSubredditSuggestions(query: string): Promise<Array<{n
   if (!query || query.length < 2) return [];
   
   try {
-    // Mock data for common subreddits to reduce API calls and avoid CORS issues
+    // Expanded mock data for better coverage
     const mockSuggestions: Record<string, string[]> = {
-      'p': ['pics', 'programming', 'politics', 'philosophy', 'pcmasterrace', 'photography'],
-      'ga': ['gaming', 'gardening', 'gameofthrones', 'games'],
-      'te': ['technology', 'television', 'techsupport', 'teslamotors'],
-      'co': ['cooking', 'comics', 'conservative', 'combinedgifs', 'cordcutters'],
+      'p': ['pics', 'programming', 'politics', 'philosophy', 'pcmasterrace', 'photography', 'personalfinance', 'pokemon'],
+      'ga': ['gaming', 'gardening', 'gameofthrones', 'games', 'gadgets'],
+      'te': ['technology', 'television', 'techsupport', 'teslamotors', 'teenagers'],
+      'co': ['cooking', 'comics', 'conservative', 'combinedgifs', 'cordcutters', 'cats'],
       'fu': ['funny', 'futurology', 'funnyandsad', 'fullmoviesonyoutube'],
       'sc': ['science', 'scifi', 'scottishpeopletwitter', 'scenesfromahat'],
-      'mo': ['movies', 'morbidreality', 'modernwarfare', 'monkeyspaw'],
-      'me': ['memes', 'memeeconomy', 'me_irl', 'medicine', 'mechanicalkeyboards']
+      'mo': ['movies', 'morbidreality', 'modernwarfare', 'monkeyspaw', 'memes'],
+      'me': ['memes', 'memeeconomy', 'me_irl', 'medicine', 'mechanicalkeyboards'],
+      'a': ['askreddit', 'art', 'aww', 'anime', 'australia'],
+      'w': ['worldnews', 'wtf', 'wallpapers', 'wholesomememes'],
+      'n': ['news', 'natureisfuckinglit', 'nba'],
+      'd': ['dankmemes', 'diy', 'dogs'],
+      'r': ['reddit', 'relationshipadvice', 'roastme'],
+      'i': ['interestingasfuck', 'iamverysmart', 'itookapicture'],
+      'l': ['lifeprotips', 'leagueoflegends', 'legaladvice'],
+      'o': ['oddlysatisfying', 'oldschoolcool', 'outoftheloop'],
+      'e': ['earthporn', 'explainlikeimfive', 'entertainment'],
+      'b': ['blackpeopletwitter', 'books', 'bestof', 'birdsarentreal'],
+      'h': ['historyporn', 'humansbeingbros', 'holdmybeer'],
+      's': ['showerthoughts', 'space', 'soccer', 'starterpacks'],
+      'v': ['videos', 'vinyl', 'vegan'],
+      'u': ['upliftingnews', 'unpopularopinion', 'users'],
+      'f': ['food', 'facepalm', 'fireemblem', 'fitness'],
+      'j': ['jokes', 'justiceserved', 'jailbreak'],
+      'k': ['karmaroulette', 'kerbalspaceprogram'],
+      'q': ['quityourbullshit', 'quotes'],
+      'x': ['xbox', 'xboxone'],
+      'y': ['youtube', 'youseeingthisshit'],
+      'z': ['zoomies', 'zelda']
     };
     
     // Check if we have mock data for this query
@@ -116,36 +157,18 @@ export async function fetchSubredditSuggestions(query: string): Promise<Array<{n
       if (lowerQuery.startsWith(prefix)) {
         return subreddits
           .filter(name => name.toLowerCase().includes(lowerQuery))
+          .slice(0, 10) // Limit to 10 suggestions
           .map(name => ({ name }));
       }
     }
     
-    // If no mock data or not a match, try the API with proper error handling
-    const url = `https://www.reddit.com/api/search_reddit_names.json?query=${encodeURIComponent(query)}&exact=false&include_over_18=true&_=${Date.now()}`;
+    // Return popular defaults if no specific match
+    const popularDefaults = ['pics', 'funny', 'aww', 'memes', 'gaming', 'videos', 'art', 'earthporn'];
+    return popularDefaults
+      .filter(name => name.toLowerCase().includes(lowerQuery))
+      .slice(0, 5)
+      .map(name => ({ name }));
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-    
-    const response = await fetch(url, { 
-      cache: 'no-store',
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'web:gaslighter:v1.0'
-      }
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      // For suggestions, we just return empty rather than error
-      console.log(`Subreddit suggestion API error: ${response.status}`);
-      return [];
-    }
-    
-    const jsonData = await response.json();
-    return (jsonData && Array.isArray(jsonData.names)) 
-      ? jsonData.names.map((name: string) => ({ name }))
-      : [];
   } catch (error) {
     console.error('Failed to fetch subreddit suggestions:', error);
     return [];
@@ -153,16 +176,20 @@ export async function fetchSubredditSuggestions(query: string): Promise<Array<{n
 }
 
 /**
- * Extracts media URLs from Reddit posts
+ * Enhanced media extraction from Reddit posts
  */
 export function extractMediaUrls(posts: RedditPost[]): MediaInfo[] {
   const media: MediaInfo[] = [];
   if (!Array.isArray(posts)) return media;
   
-  posts.forEach(post => {
+  console.log(`[Media Extraction] Processing ${posts.length} posts`);
+  
+  posts.forEach((post, index) => {
     try {
       const pData = post.data;
       if (!pData) return;
+
+      let mediaFound = false;
 
       // 1. Handle Reddit Galleries (is_gallery: true)
       if (pData.is_gallery && pData.media_metadata) {
@@ -171,18 +198,15 @@ export function extractMediaUrls(posts: RedditPost[]): MediaInfo[] {
           const firstImageId = galleryImageIds[0];
           const meta = pData.media_metadata[firstImageId];
           
-          // Try to get the direct image URL (s.u)
           if (meta && meta.s && meta.s.u) { 
             media.push({ 
               type: 'image', 
               url: meta.s.u.replace(/&amp;/g, '&'), 
               originalPost: pData 
             });
-            return; // Move to next post after successful extraction
+            mediaFound = true;
           } 
-          // Fallback to processed preview images (p)
           else if (meta && meta.p && meta.p.length > 0) { 
-            // Sort previews by width (largest first) and take the URL of the largest
             const largestPreview = meta.p.sort((a, b) => b.x - a.x)[0]; 
             if (largestPreview && largestPreview.u) {
               media.push({ 
@@ -190,47 +214,72 @@ export function extractMediaUrls(posts: RedditPost[]): MediaInfo[] {
                 url: largestPreview.u.replace(/&amp;/g, '&'), 
                 originalPost: pData 
               });
-              return; // Move to next post after successful extraction
+              mediaFound = true;
             }
           }
         }
       }
+      
       // 2. Handle Reddit-hosted videos
-      else if (pData.is_video && pData.media?.reddit_video?.fallback_url) {
+      if (!mediaFound && pData.is_video && pData.media?.reddit_video?.fallback_url) {
         media.push({ 
           type: 'video', 
           url: pData.media.reddit_video.fallback_url.split('?')[0], 
           originalPost: pData 
         });
+        mediaFound = true;
       } 
-      // 3. Handle direct image links (jpg, jpeg, png, gif)
-      else if (
-        pData.url_overridden_by_dest && 
-        /\.(jpg|jpeg|png|gif)$/i.test(pData.url_overridden_by_dest) && 
-        (pData.post_hint === 'image' || pData.domain === 'i.redd.it' || pData.domain === 'i.imgur.com')
-      ) {
-        media.push({ 
-          type: 'image', 
-          url: pData.url_overridden_by_dest, 
-          originalPost: pData 
-        });
-      } 
-      // 4. Handle Imgur .gifv links (convert to .mp4)
-      else if (
-        pData.url_overridden_by_dest?.endsWith('.gifv') && 
-        pData.domain === 'i.imgur.com'
-      ) {
-        media.push({ 
-          type: 'video', 
-          url: pData.url_overridden_by_dest.replace(/\.gifv$/i, '.mp4'), 
-          originalPost: pData 
-        });
+      
+      // 3. Handle direct image links (more permissive)
+      if (!mediaFound && pData.url_overridden_by_dest) {
+        const url = pData.url_overridden_by_dest;
+        
+        // Check for image extensions or known image domains
+        if (
+          /\.(jpg|jpeg|png|gif|webp)$/i.test(url) || 
+          url.includes('i.redd.it') || 
+          url.includes('i.imgur.com') ||
+          pData.post_hint === 'image'
+        ) {
+          media.push({ 
+            type: 'image', 
+            url: url, 
+            originalPost: pData 
+          });
+          mediaFound = true;
+        }
+        // Handle .gifv links (convert to .mp4)
+        else if (url.endsWith('.gifv')) {
+          media.push({ 
+            type: 'video', 
+            url: url.replace(/\.gifv$/i, '.mp4'), 
+            originalPost: pData 
+          });
+          mediaFound = true;
+        }
+      }
+
+      // 4. Fallback: Check preview images for any post with preview data
+      if (!mediaFound && pData.preview && pData.preview.images && pData.preview.images.length > 0) {
+        const preview = pData.preview.images[0];
+        if (preview.source && preview.source.url) {
+          media.push({ 
+            type: 'image', 
+            url: preview.source.url.replace(/&amp;/g, '&'), 
+            originalPost: pData 
+          });
+          mediaFound = true;
+        }
+      }
+      
+      if (mediaFound) {
+        console.log(`[Media Extraction] Found media in post ${index + 1}: ${pData.title?.substring(0, 50)}...`);
       }
     } catch (error) {
-      console.error('Error processing post:', error);
-      // Continue to the next post if there's an error
+      console.error(`[Media Extraction] Error processing post ${index}:`, error);
     }
   });
   
+  console.log(`[Media Extraction] Extracted ${media.length} media items from ${posts.length} posts`);
   return media;
 }
